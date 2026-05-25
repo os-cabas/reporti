@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Salas — ReporTi{% endblock %}
+{% block nav_salas %}active{% endblock %}
+{% block page_title %}Salas{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
+        <i class="bi bi-plus-lg me-1"></i>Nova Sala
+    </button>
+</div>
+
+<div class="table-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nome</th>
+                <th>Andar</th>
+                <th>Número</th>
+                <th>Entidade</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="salas-body">
+            <tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal nova sala -->
+<div class="modal fade" id="modal-novo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold">Nova Sala</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Nome</label>
+                    <input type="text" id="f-nome" class="form-control form-control-sm" placeholder="Ex: Laboratório 01">
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col">
+                        <label class="form-label small fw-semibold">Andar</label>
+                        <input type="text" id="f-andar" class="form-control form-control-sm" placeholder="Ex: 2">
+                    </div>
+                    <div class="col">
+                        <label class="form-label small fw-semibold">Número</label>
+                        <input type="text" id="f-numero" class="form-control form-control-sm" placeholder="Ex: 204">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Entidade</label>
+                    <select id="f-entidade" class="form-select form-select-sm">
+                        <option value="">Selecione uma entidade</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="criar()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function carregar() {
+        const [resSalas, resEntidades] = await Promise.all([
+            authFetch(`${API}/salas/`),
+            authFetch(`${API}/entidades/`),
+        ]);
+        const salas = await resSalas.json();
+        const entidades = await resEntidades.json();
+
+        const entMap = Object.fromEntries((Array.isArray(entidades) ? entidades : entidades.results || []).map(e => [e.id, e.nome]));
+        const lista = Array.isArray(salas) ? salas : (salas.results || []);
+        const tbody = document.getElementById('salas-body');
+
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Nenhuma sala cadastrada.</td></tr>';
+        } else {
+            tbody.innerHTML = lista.map(s => `
+                <tr>
+                    <td class="text-muted">#${s.id}</td>
+                    <td>${s.nome}</td>
+                    <td>${s.andar}</td>
+                    <td>${s.numero}</td>
+                    <td>${entMap[s.entidade] || s.entidade}</td>
+                    <td class="text-end">
+                        <button class="btn btn-xs btn-outline-danger" onclick="excluir(${s.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>`).join('');
+        }
+
+        const sel = document.getElementById('f-entidade');
+        sel.innerHTML = '<option value="">Selecione uma entidade</option>';
+        (Array.isArray(entidades) ? entidades : entidades.results || []).forEach(e => {
+            sel.innerHTML += `<option value="${e.id}">${e.nome}</option>`;
+        });
+    }
+
+    async function criar() {
+        const nome = document.getElementById('f-nome').value.trim();
+        const andar = document.getElementById('f-andar').value.trim();
+        const numero = document.getElementById('f-numero').value.trim();
+        const entidade = document.getElementById('f-entidade').value;
+        if (!nome || !andar || !numero || !entidade) return alert('Preencha todos os campos.');
+        const res = await authFetch(`${API}/salas/`, {
+            method: 'POST',
+            body: JSON.stringify({ nome, andar, numero, entidade: parseInt(entidade) }),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
+            await carregar();
+        }
+    }
+
+    async function excluir(id) {
+        if (!confirm('Excluir esta sala?')) return;
+        await authFetch(`${API}/salas/${id}/`, { method: 'DELETE' });
+        await carregar();
+    }
+
+    document.addEventListener('DOMContentLoaded', carregar);
+</script>
+{% endblock %}

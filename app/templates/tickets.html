@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Tickets — ReporTi{% endblock %}
+{% block nav_tickets %}active{% endblock %}
+{% block page_title %}Tickets{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="btn-group" role="group">
+        <button class="btn btn-sm btn-outline-secondary active" onclick="filtrar('')" id="f-todos">Todos</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="filtrar('aberto')" id="f-aberto">Abertos</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="filtrar('em_andamento')" id="f-andamento">Em andamento</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="filtrar('fechado')" id="f-fechado">Fechados</button>
+    </div>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
+        <i class="bi bi-plus-lg me-1"></i>Novo Ticket
+    </button>
+</div>
+
+<div class="table-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Título</th>
+                <th>Status</th>
+                <th>Dispositivo</th>
+                <th>Criado em</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="tickets-body">
+            <tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal novo ticket -->
+<div class="modal fade" id="modal-novo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold">Abrir Ticket</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Título</label>
+                    <input type="text" id="f-titulo" class="form-control form-control-sm" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Descrição</label>
+                    <textarea id="f-descricao" class="form-control form-control-sm" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Dispositivo</label>
+                    <select id="f-dispositivo" class="form-select form-select-sm">
+                        <option value="">— Nenhum —</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="criarTicket()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let todosTickets = [];
+    let filtroAtual = '';
+
+    function statusBadge(s) {
+        const map = { aberto: 'Aberto', em_andamento: 'Em andamento', fechado: 'Fechado' };
+        return `<span class="badge badge-${s}">${map[s] || s}</span>`;
+    }
+
+    function renderTabela(lista) {
+        const tbody = document.getElementById('tickets-body');
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Nenhum ticket encontrado.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = lista.map(t => `
+            <tr>
+                <td class="text-muted">#${t.id}</td>
+                <td>${t.titulo}</td>
+                <td>${statusBadge(t.status)}</td>
+                <td>${t.dispositivo || '—'}</td>
+                <td>${new Date(t.criado_em).toLocaleDateString('pt-BR')}</td>
+                <td class="text-end">
+                    ${t.status === 'aberto' ? `<button class="btn btn-xs btn-outline-warning me-1" onclick="mudarStatus(${t.id},'em_andamento')">Atender</button>` : ''}
+                    ${t.status === 'em_andamento' ? `<button class="btn btn-xs btn-outline-success me-1" onclick="mudarStatus(${t.id},'fechado')">Fechar</button>` : ''}
+                    <button class="btn btn-xs btn-outline-danger" onclick="excluir(${t.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>`).join('');
+    }
+
+    function filtrar(status) {
+        filtroAtual = status;
+        document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+        const ids = { '': 'f-todos', 'aberto': 'f-aberto', 'em_andamento': 'f-andamento', 'fechado': 'f-fechado' };
+        document.getElementById(ids[status])?.classList.add('active');
+        const filtrados = status ? todosTickets.filter(t => t.status === status) : todosTickets;
+        renderTabela(filtrados);
+    }
+
+    async function carregarTickets() {
+        const res = await authFetch(`${API}/tickets/`);
+        const data = await res.json();
+        todosTickets = Array.isArray(data) ? data : (data.results || []);
+        filtrar(filtroAtual);
+    }
+
+    async function carregarDispositivos() {
+        const res = await authFetch(`${API}/dispositivos/`);
+        const data = await res.json();
+        const sel = document.getElementById('f-dispositivo');
+        const lista = Array.isArray(data) ? data : (data.results || []);
+        lista.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = `#${d.id} — Sala ${d.sala}`;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function criarTicket() {
+        const titulo = document.getElementById('f-titulo').value.trim();
+        if (!titulo) return;
+        const body = {
+            titulo,
+            descricao: document.getElementById('f-descricao').value,
+            status: 'aberto',
+            usuario: null,
+            dispositivo: document.getElementById('f-dispositivo').value || null,
+        };
+        const res = await authFetch(`${API}/tickets/`, { method: 'POST', body: JSON.stringify(body) });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
+            document.getElementById('f-titulo').value = '';
+            document.getElementById('f-descricao').value = '';
+            await carregarTickets();
+        }
+    }
+
+    async function mudarStatus(id, status) {
+        await authFetch(`${API}/tickets/${id}/`, { method: 'PATCH', body: JSON.stringify({ status }) });
+        await carregarTickets();
+    }
+
+    async function excluir(id) {
+        if (!confirm('Excluir este ticket?')) return;
+        await authFetch(`${API}/tickets/${id}/`, { method: 'DELETE' });
+        await carregarTickets();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        carregarTickets();
+        carregarDispositivos();
+    });
+</script>
+{% endblock %}

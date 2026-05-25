@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — ReporTi{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#fef2f2;color:#dc2626;">
+                <i class="bi bi-exclamation-circle"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="count-aberto">—</div>
+                <div class="stat-label">Tickets Abertos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#fffbeb;color:#d97706;">
+                <i class="bi bi-arrow-repeat"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="count-andamento">—</div>
+                <div class="stat-label">Em Andamento</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#f0fdf4;color:#16a34a;">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="count-fechado">—</div>
+                <div class="stat-label">Tickets Fechados</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#eff6ff;color:#3b82f6;">
+                <i class="bi bi-pc-display"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="count-disp">—</div>
+                <div class="stat-label">Dispositivos</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="d-flex align-items-center justify-content-between px-3 py-3 border-bottom">
+        <span class="fw-semibold" style="font-size:.875rem;">Tickets Recentes</span>
+        <a href="/tickets/" class="btn btn-sm btn-outline-primary">Ver todos</a>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Título</th>
+                <th>Status</th>
+                <th>Criado em</th>
+            </tr>
+        </thead>
+        <tbody id="recent-tickets">
+            <tr><td colspan="4" class="text-center text-muted py-4">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function statusBadge(s) {
+        const map = { aberto: 'Aberto', em_andamento: 'Em andamento', fechado: 'Fechado' };
+        return `<span class="badge badge-${s}">${map[s] || s}</span>`;
+    }
+
+    async function loadDashboard() {
+        const [tickets, dispositivos] = await Promise.all([
+            authFetch(`${API}/tickets/`).then(r => r.json()),
+            authFetch(`${API}/dispositivos/`).then(r => r.json()),
+        ]);
+
+        const all = Array.isArray(tickets) ? tickets : (tickets.results || []);
+        document.getElementById('count-aberto').textContent = all.filter(t => t.status === 'aberto').length;
+        document.getElementById('count-andamento').textContent = all.filter(t => t.status === 'em_andamento').length;
+        document.getElementById('count-fechado').textContent = all.filter(t => t.status === 'fechado').length;
+        document.getElementById('count-disp').textContent = Array.isArray(dispositivos) ? dispositivos.length : (dispositivos.results || []).length;
+
+        const tbody = document.getElementById('recent-tickets');
+        const recent = all.slice(-10).reverse();
+        if (!recent.length) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Nenhum ticket cadastrado.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = recent.map(t => `
+            <tr>
+                <td class="text-muted">#${t.id}</td>
+                <td>${t.titulo}</td>
+                <td>${statusBadge(t.status)}</td>
+                <td>${new Date(t.criado_em).toLocaleDateString('pt-BR')}</td>
+            </tr>`).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Dispositivos — ReporTi{% endblock %}
+{% block nav_dispositivos %}active{% endblock %}
+{% block page_title %}Dispositivos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
+        <i class="bi bi-plus-lg me-1"></i>Novo Dispositivo
+    </button>
+</div>
+
+<div class="table-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Modelo</th>
+                <th>Categoria</th>
+                <th>Sala</th>
+                <th>Andar</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="disp-body">
+            <tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal novo dispositivo -->
+<div class="modal fade" id="modal-novo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold">Novo Dispositivo</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Sala</label>
+                    <select id="f-sala" class="form-select form-select-sm">
+                        <option value="">Selecione uma sala</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Modelo</label>
+                    <select id="f-modelo" class="form-select form-select-sm">
+                        <option value="">Selecione um modelo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="criar()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let salas = [];
+    let modelos = [];
+
+    async function carregar() {
+        const [resDisp, resSalas, resModelos] = await Promise.all([
+            authFetch(`${API}/dispositivos/`),
+            authFetch(`${API}/salas/`),
+            authFetch(`${API}/modelos/`),
+        ]);
+        const disp = await resDisp.json();
+        salas = await resSalas.json();
+        modelos = await resModelos.json();
+
+        const salaMap = Object.fromEntries((Array.isArray(salas) ? salas : salas.results || []).map(s => [s.id, s]));
+        const modeloMap = Object.fromEntries((Array.isArray(modelos) ? modelos : modelos.results || []).map(m => [m.id, m]));
+
+        const lista = Array.isArray(disp) ? disp : (disp.results || []);
+        const tbody = document.getElementById('disp-body');
+
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Nenhum dispositivo cadastrado.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = lista.map(d => {
+            const sala = salaMap[d.sala] || {};
+            const modelo = modeloMap[d.modelo] || {};
+            return `<tr>
+                <td class="text-muted">#${d.id}</td>
+                <td>${modelo.nome || '—'}</td>
+                <td>${modelo.categoria || '—'}</td>
+                <td>${sala.nome || '—'}</td>
+                <td>${sala.andar || '—'}</td>
+                <td class="text-end">
+                    <button class="btn btn-xs btn-outline-danger" onclick="excluir(${d.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        const selSala = document.getElementById('f-sala');
+        const selModelo = document.getElementById('f-modelo');
+        selSala.innerHTML = '<option value="">Selecione uma sala</option>';
+        selModelo.innerHTML = '<option value="">Selecione um modelo</option>';
+
+        (Array.isArray(salas) ? salas : salas.results || []).forEach(s => {
+            selSala.innerHTML += `<option value="${s.id}">${s.nome} — Andar ${s.andar}</option>`;
+        });
+        (Array.isArray(modelos) ? modelos : modelos.results || []).forEach(m => {
+            selModelo.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+        });
+    }
+
+    async function criar() {
+        const sala = document.getElementById('f-sala').value;
+        const modelo = document.getElementById('f-modelo').value;
+        if (!sala || !modelo) return alert('Selecione sala e modelo.');
+        const res = await authFetch(`${API}/dispositivos/`, {
+            method: 'POST',
+            body: JSON.stringify({ sala: parseInt(sala), modelo: parseInt(modelo) }),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
+            await carregar();
+        }
+    }
+
+    async function excluir(id) {
+        if (!confirm('Excluir este dispositivo?')) return;
+        await authFetch(`${API}/dispositivos/${id}/`, { method: 'DELETE' });
+        await carregar();
+    }
+
+    document.addEventListener('DOMContentLoaded', carregar);
+</script>
+{% endblock %}

@@ -1,3 +1,8 @@
+from django.db import models
+from .sala import Sala
+from .modelo import Modelo
+
+
 class Dispositivo(models.Model):
     sala = models.ForeignKey(Sala, on_delete=models.SET_NULL, null=True)
     modelo = models.ForeignKey(Modelo, on_delete=models.SET_NULL, null=True)
