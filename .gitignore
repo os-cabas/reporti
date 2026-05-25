@@ -1,1 +1,12 @@
 config/settings.py
+.env
+orchestration.md
+.claude
+.vscode
+._pycache_
+config/__pycache__
+app/__pycache__
+app/migrations/__pycache__
+app/serializers/__pycache__
+app/views/__pycache__
+app/models/__pycache__
