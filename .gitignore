@@ -3,10 +3,24 @@ config/settings.py
 orchestration.md
 .claude
 .vscode
-._pycache_
-config/__pycache__
-app/__pycache__
-app/migrations/__pycache__
-app/serializers/__pycache__
-app/views/__pycache__
-app/models/__pycache__
+
+# Python cache
+**/__pycache__/
+*.py[cod]
+*.pyo
+
+# Django
+staticfiles/
+media/
+db.sqlite3
+
+
+# Logs
+logs/*.log
+
+# Virtualenv
+venv/
+.venv/
+env/
+
+docs/

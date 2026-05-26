@@ -5,10 +5,18 @@
 {% block page_title %}Dispositivos{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
-        <i class="bi bi-plus-lg me-1"></i>Novo Dispositivo
-    </button>
+<div class="toolbar">
+    <div class="toolbar-left">
+        <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" class="search-input" id="search-disp" placeholder="Buscar dispositivo…" oninput="aplicarBusca()">
+        </div>
+    </div>
+    <div class="toolbar-right">
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
+            <i class="bi bi-plus-lg me-1"></i>Novo Dispositivo
+        </button>
+    </div>
 </div>
 
 <div class="table-card">
@@ -20,11 +28,12 @@
                 <th>Categoria</th>
                 <th>Sala</th>
                 <th>Andar</th>
+                <th>Entidade</th>
                 <th></th>
             </tr>
         </thead>
         <tbody id="disp-body">
-            <tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>
+            <tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>
         </tbody>
     </table>
 </div>
@@ -34,18 +43,18 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title fw-semibold">Novo Dispositivo</h6>
+                <h6 class="modal-title">Novo Dispositivo</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold">Sala</label>
+                    <label class="form-label">Sala <span class="text-danger">*</span></label>
                     <select id="f-sala" class="form-select form-select-sm">
                         <option value="">Selecione uma sala</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold">Modelo</label>
+                    <label class="form-label">Modelo <span class="text-danger">*</span></label>
                     <select id="f-modelo" class="form-select form-select-sm">
                         <option value="">Selecione um modelo</option>
                     </select>
@@ -58,68 +67,131 @@
         </div>
     </div>
 </div>
+
+<!-- Modal editar dispositivo -->
+<div class="modal fade" id="modal-editar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Editar Dispositivo</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="e-id">
+                <div class="mb-3">
+                    <label class="form-label">Sala <span class="text-danger">*</span></label>
+                    <select id="e-sala" class="form-select form-select-sm">
+                        <option value="">Selecione uma sala</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Modelo <span class="text-danger">*</span></label>
+                    <select id="e-modelo" class="form-select form-select-sm">
+                        <option value="">Selecione um modelo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="salvarEdicao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    let salas = [];
-    let modelos = [];
+    let salas = [], modelos = [], categorias = [], entidades = [], dispositivos = [];
+    let dispRows = [];
+
+    function aplicarBusca() {
+        const termo = document.getElementById('search-disp').value.toLowerCase();
+        const filtrados = termo ? dispRows.filter(r => r.termo.includes(termo)) : dispRows;
+        renderRows(filtrados);
+    }
+
+    function renderRows(rows) {
+        const tbody = document.getElementById('disp-body');
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="7">
+                <div class="empty-state">
+                    <i class="bi bi-pc-display empty-state-icon"></i>
+                    <p class="empty-state-title">Nenhum dispositivo encontrado</p>
+                    <p class="empty-state-sub">Cadastre um novo dispositivo ou ajuste a busca.</p>
+                </div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map(r => r.html).join('');
+    }
 
     async function carregar() {
-        const [resDisp, resSalas, resModelos] = await Promise.all([
+        const [resDisp, resSalas, resModelos, resCat, resEnt] = await Promise.all([
             authFetch(`${API}/dispositivos/`),
             authFetch(`${API}/salas/`),
             authFetch(`${API}/modelos/`),
+            authFetch(`${API}/categorias/`),
+            authFetch(`${API}/entidades/`),
         ]);
-        const disp = await resDisp.json();
-        salas = await resSalas.json();
-        modelos = await resModelos.json();
+        dispositivos = await resDisp.json();
+        salas        = await resSalas.json();
+        modelos      = await resModelos.json();
+        categorias   = await resCat.json();
+        entidades    = await resEnt.json();
 
-        const salaMap = Object.fromEntries((Array.isArray(salas) ? salas : salas.results || []).map(s => [s.id, s]));
-        const modeloMap = Object.fromEntries((Array.isArray(modelos) ? modelos : modelos.results || []).map(m => [m.id, m]));
+        const salaArr    = Array.isArray(salas)      ? salas      : salas.results || [];
+        const modeloArr  = Array.isArray(modelos)    ? modelos    : modelos.results || [];
+        const catArr     = Array.isArray(categorias) ? categorias : categorias.results || [];
+        const entArr     = Array.isArray(entidades)  ? entidades  : entidades.results || [];
+        const dispArr    = Array.isArray(dispositivos) ? dispositivos : dispositivos.results || [];
 
-        const lista = Array.isArray(disp) ? disp : (disp.results || []);
-        const tbody = document.getElementById('disp-body');
+        const salaMap   = Object.fromEntries(salaArr.map(s => [s.id, s]));
+        const modeloMap = Object.fromEntries(modeloArr.map(m => [m.id, m]));
+        const catMap    = Object.fromEntries(catArr.map(c => [c.id, c.nome]));
+        const entMap    = Object.fromEntries(entArr.map(e => [e.id, e.nome]));
 
-        if (!lista.length) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Nenhum dispositivo cadastrado.</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = lista.map(d => {
-            const sala = salaMap[d.sala] || {};
-            const modelo = modeloMap[d.modelo] || {};
-            return `<tr>
-                <td class="text-muted">#${d.id}</td>
-                <td>${modelo.nome || '—'}</td>
-                <td>${modelo.categoria || '—'}</td>
+        dispRows = dispArr.map(d => {
+            const sala    = salaMap[d.sala] || {};
+            const modelo  = modeloMap[d.modelo] || {};
+            const catNome = catMap[modelo.categoria] || '—';
+            const entNome = entMap[sala.entidade] || '—';
+            const html = `<tr>
+                <td class="text-muted fw-medium">#${d.id}</td>
+                <td class="fw-medium">${modelo.nome || '—'}</td>
+                <td><span class="tag-badge">${catNome}</span></td>
                 <td>${sala.nome || '—'}</td>
                 <td>${sala.andar || '—'}</td>
-                <td class="text-end">
-                    <button class="btn btn-xs btn-outline-danger" onclick="excluir(${d.id})">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                <td>${entNome}</td>
+                <td>
+                    <div class="d-flex gap-1 justify-content-end">
+                        <button class="btn-action" onclick="abrirEdicao(${d.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-action btn-action-danger" onclick="excluir(${d.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                    </div>
                 </td>
             </tr>`;
-        }).join('');
-
-        const selSala = document.getElementById('f-sala');
-        const selModelo = document.getElementById('f-modelo');
-        selSala.innerHTML = '<option value="">Selecione uma sala</option>';
-        selModelo.innerHTML = '<option value="">Selecione um modelo</option>';
-
-        (Array.isArray(salas) ? salas : salas.results || []).forEach(s => {
-            selSala.innerHTML += `<option value="${s.id}">${s.nome} — Andar ${s.andar}</option>`;
+            return { id: d.id, termo: `${modelo.nome || ''} ${catNome} ${sala.nome || ''} ${entNome}`.toLowerCase(), html };
         });
-        (Array.isArray(modelos) ? modelos : modelos.results || []).forEach(m => {
-            selModelo.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+
+        renderRows(dispRows);
+
+        ['f-sala', 'e-sala'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">Selecione uma sala</option>';
+            salaArr.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.nome} — Andar ${s.andar}</option>`; });
+        });
+
+        ['f-modelo', 'e-modelo'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">Selecione um modelo</option>';
+            modeloArr.forEach(m => { sel.innerHTML += `<option value="${m.id}">${m.nome}</option>`; });
         });
     }
 
     async function criar() {
-        const sala = document.getElementById('f-sala').value;
+        const sala   = document.getElementById('f-sala').value;
         const modelo = document.getElementById('f-modelo').value;
-        if (!sala || !modelo) return alert('Selecione sala e modelo.');
+        if (!sala || !modelo) { toast('Selecione sala e modelo.', 'warn'); return; }
         const res = await authFetch(`${API}/dispositivos/`, {
             method: 'POST',
             body: JSON.stringify({ sala: parseInt(sala), modelo: parseInt(modelo) }),
@@ -127,6 +199,37 @@
         if (res.ok) {
             bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
             await carregar();
+            toast('Dispositivo cadastrado!', 'success');
+        } else {
+            toast('Erro ao criar dispositivo.', 'error');
+        }
+    }
+
+    function abrirEdicao(id) {
+        const dispArr = Array.isArray(dispositivos) ? dispositivos : dispositivos.results || [];
+        const d = dispArr.find(x => x.id === id);
+        if (!d) return;
+        document.getElementById('e-id').value = d.id;
+        document.getElementById('e-sala').value   = d.sala || '';
+        document.getElementById('e-modelo').value = d.modelo || '';
+        new bootstrap.Modal(document.getElementById('modal-editar')).show();
+    }
+
+    async function salvarEdicao() {
+        const id    = document.getElementById('e-id').value;
+        const sala  = document.getElementById('e-sala').value;
+        const modelo = document.getElementById('e-modelo').value;
+        if (!sala || !modelo) { toast('Selecione sala e modelo.', 'warn'); return; }
+        const res = await authFetch(`${API}/dispositivos/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ sala: parseInt(sala), modelo: parseInt(modelo) }),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-editar')).hide();
+            await carregar();
+            toast('Dispositivo atualizado.', 'success');
+        } else {
+            toast('Erro ao salvar alterações.', 'error');
         }
     }
 
@@ -134,6 +237,7 @@
         if (!confirm('Excluir este dispositivo?')) return;
         await authFetch(`${API}/dispositivos/${id}/`, { method: 'DELETE' });
         await carregar();
+        toast('Dispositivo excluído.', 'default');
     }
 
     document.addEventListener('DOMContentLoaded', carregar);

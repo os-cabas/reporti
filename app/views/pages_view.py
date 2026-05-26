@@ -19,3 +19,23 @@ class DispositivosPageView(TemplateView):
 
 class SalasPageView(TemplateView):
     template_name = 'salas.html'
+
+
+class EntidadesPageView(TemplateView):
+    template_name = 'entidades.html'
+
+
+class CategoriasPageView(TemplateView):
+    template_name = 'categorias.html'
+
+
+class ModelosPageView(TemplateView):
+    template_name = 'modelos.html'
+
+
+class UsuariosPageView(TemplateView):
+    template_name = 'usuarios.html'
+
+
+class PermissoesPageView(TemplateView):
+    template_name = 'permissoes.html'

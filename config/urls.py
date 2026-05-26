@@ -1,7 +1,11 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from app.views.pages_view import LoginPageView, DashboardPageView, TicketsPageView, DispositivosPageView, SalasPageView
+from app.views.pages_view import (
+    LoginPageView, DashboardPageView, TicketsPageView,
+    DispositivosPageView, SalasPageView, EntidadesPageView,
+    CategoriasPageView, ModelosPageView, UsuariosPageView, PermissoesPageView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -18,5 +22,10 @@ urlpatterns = [
     path('tickets/', TicketsPageView.as_view(), name='tickets'),
     path('dispositivos/', DispositivosPageView.as_view(), name='dispositivos'),
     path('salas/', SalasPageView.as_view(), name='salas'),
+    path('entidades/', EntidadesPageView.as_view(), name='entidades'),
+    path('categorias/', CategoriasPageView.as_view(), name='categorias'),
+    path('modelos/', ModelosPageView.as_view(), name='modelos'),
+    path('usuarios/', UsuariosPageView.as_view(), name='usuarios'),
+    path('permissoes/', PermissoesPageView.as_view(), name='permissoes'),
     path('', DashboardPageView.as_view(), name='dashboard'),
 ]

@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}Modelos — ReporTi{% endblock %}
+{% block nav_modelos %}active{% endblock %}
+{% block page_title %}Modelos de Dispositivo{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <div class="toolbar-left">
+        <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" class="search-input" id="search-mod" placeholder="Buscar modelo…" oninput="aplicarBusca()">
+        </div>
+    </div>
+    <div class="toolbar-right">
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
+            <i class="bi bi-plus-lg me-1"></i>Novo Modelo
+        </button>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Descrição</th>
+                <th>Dispositivos</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="modelos-body">
+            <tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal novo modelo -->
+<div class="modal fade" id="modal-novo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Novo Modelo</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nome <span class="text-danger">*</span></label>
+                    <input type="text" id="f-nome" class="form-control form-control-sm" placeholder="Ex: HP LaserJet Pro M404n">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Categoria</label>
+                    <select id="f-categoria" class="form-select form-select-sm">
+                        <option value="">— Sem categoria —</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea id="f-descricao" class="form-control form-control-sm" rows="2" placeholder="Especificações, observações…"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="criar()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal editar modelo -->
+<div class="modal fade" id="modal-editar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Editar Modelo</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="e-id">
+                <div class="mb-3">
+                    <label class="form-label">Nome <span class="text-danger">*</span></label>
+                    <input type="text" id="e-nome" class="form-control form-control-sm">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Categoria</label>
+                    <select id="e-categoria" class="form-select form-select-sm">
+                        <option value="">— Sem categoria —</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea id="e-descricao" class="form-control form-control-sm" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="salvarEdicao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let todosModelos = [];
+    let modeloRows = [];
+
+    function aplicarBusca() {
+        const termo = document.getElementById('search-mod').value.toLowerCase();
+        const filtrados = termo ? modeloRows.filter(r => r.termo.includes(termo)) : modeloRows;
+        renderRows(filtrados);
+    }
+
+    function renderRows(rows) {
+        const tbody = document.getElementById('modelos-body');
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="6">
+                <div class="empty-state">
+                    <i class="bi bi-box empty-state-icon"></i>
+                    <p class="empty-state-title">Nenhum modelo encontrado</p>
+                    <p class="empty-state-sub">Cadastre modelos de dispositivo para usar nos chamados.</p>
+                </div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map(r => r.html).join('');
+    }
+
+    async function carregar() {
+        const [resModelos, resCat, resDisp] = await Promise.all([
+            authFetch(`${API}/modelos/`),
+            authFetch(`${API}/categorias/`),
+            authFetch(`${API}/dispositivos/`),
+        ]);
+        todosModelos  = await resModelos.json();
+        const categorias  = await resCat.json();
+        const dispositivos = await resDisp.json();
+
+        const catArr    = Array.isArray(categorias) ? categorias : categorias.results || [];
+        const modeloArr = Array.isArray(todosModelos) ? todosModelos : todosModelos.results || [];
+        const dispArr   = Array.isArray(dispositivos) ? dispositivos : dispositivos.results || [];
+
+        const catMap = Object.fromEntries(catArr.map(c => [c.id, c.nome]));
+        const dispCount = {};
+        dispArr.forEach(d => { if (d.modelo) dispCount[d.modelo] = (dispCount[d.modelo] || 0) + 1; });
+
+        modeloRows = modeloArr.map(m => {
+            const catNome = m.categoria ? (catMap[m.categoria] || '—') : null;
+            const count   = dispCount[m.id] || 0;
+            const descTrunc = m.descricao && m.descricao.length > 50 ? m.descricao.slice(0,50) + '…' : (m.descricao || '—');
+            const html = `<tr>
+                <td class="text-muted fw-medium">#${m.id}</td>
+                <td class="fw-medium">${m.nome}</td>
+                <td>${catNome ? `<span class="tag-badge">${catNome}</span>` : '<span class="text-muted">—</span>'}</td>
+                <td class="text-muted" style="font-size:.8125rem;">${descTrunc}</td>
+                <td><span class="count-badge">${count} dispositivo${count !== 1 ? 's' : ''}</span></td>
+                <td>
+                    <div class="d-flex gap-1 justify-content-end">
+                        <button class="btn-action" onclick="abrirEdicao(${m.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-action btn-action-danger" onclick="excluir(${m.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+            return { id: m.id, termo: `${m.nome} ${catNome || ''}`.toLowerCase(), html };
+        });
+
+        renderRows(modeloRows);
+
+        ['f-categoria', 'e-categoria'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">— Sem categoria —</option>';
+            catArr.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`; });
+        });
+    }
+
+    async function criar() {
+        const nome     = document.getElementById('f-nome').value.trim();
+        if (!nome) { toast('Informe o nome do modelo.', 'warn'); return; }
+        const categoria = document.getElementById('f-categoria').value;
+        const body = {
+            nome,
+            descricao: document.getElementById('f-descricao').value,
+            categoria: categoria ? parseInt(categoria) : null,
+        };
+        const res = await authFetch(`${API}/modelos/`, { method: 'POST', body: JSON.stringify(body) });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
+            document.getElementById('f-nome').value = '';
+            document.getElementById('f-descricao').value = '';
+            document.getElementById('f-categoria').value = '';
+            await carregar();
+            toast('Modelo cadastrado!', 'success');
+        } else {
+            toast('Erro ao criar modelo.', 'error');
+        }
+    }
+
+    function abrirEdicao(id) {
+        const modeloArr = Array.isArray(todosModelos) ? todosModelos : todosModelos.results || [];
+        const m = modeloArr.find(x => x.id === id);
+        if (!m) return;
+        document.getElementById('e-id').value        = m.id;
+        document.getElementById('e-nome').value      = m.nome;
+        document.getElementById('e-categoria').value = m.categoria || '';
+        document.getElementById('e-descricao').value = m.descricao || '';
+        new bootstrap.Modal(document.getElementById('modal-editar')).show();
+    }
+
+    async function salvarEdicao() {
+        const id       = document.getElementById('e-id').value;
+        const nome     = document.getElementById('e-nome').value.trim();
+        if (!nome) { toast('Informe o nome do modelo.', 'warn'); return; }
+        const categoria = document.getElementById('e-categoria').value;
+        const body = {
+            nome,
+            descricao: document.getElementById('e-descricao').value,
+            categoria: categoria ? parseInt(categoria) : null,
+        };
+        const res = await authFetch(`${API}/modelos/${id}/`, { method: 'PATCH', body: JSON.stringify(body) });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-editar')).hide();
+            await carregar();
+            toast('Modelo atualizado.', 'success');
+        } else {
+            toast('Erro ao salvar alterações.', 'error');
+        }
+    }
+
+    async function excluir(id) {
+        if (!confirm('Excluir este modelo?')) return;
+        const res = await authFetch(`${API}/modelos/${id}/`, { method: 'DELETE' });
+        if (res.ok || res.status === 204) {
+            await carregar();
+            toast('Modelo excluído.', 'default');
+        } else {
+            toast('Não foi possível excluir.', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', carregar);
+</script>
+{% endblock %}
