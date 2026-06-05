@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Modelos — ReporTi{% endblock %}
+{% block title %}Modelos — ReporTI{% endblock %}
 {% block nav_modelos %}active{% endblock %}
 {% block page_title %}Modelos de Dispositivo{% endblock %}
 
@@ -42,7 +42,9 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Novo Modelo</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-box"></i> <span>Novo Modelo</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -52,9 +54,15 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Categoria</label>
-                    <select id="f-categoria" class="form-select form-select-sm">
-                        <option value="">— Sem categoria —</option>
-                    </select>
+                    <div class="dropdown w-100">
+                        <input type="hidden" id="f-categoria" value="">
+                        <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="f-categoria-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="f-categoria-label">— Sem categoria —</span>
+                        </button>
+                        <ul class="dropdown-menu entity-dropdown-menu w-100" id="f-categoria-menu">
+                            <!-- Populado dinamicamente -->
+                        </ul>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Descrição</label>
@@ -74,7 +82,9 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Editar Modelo</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-pencil-square"></i> <span>Editar Modelo</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -85,9 +95,15 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Categoria</label>
-                    <select id="e-categoria" class="form-select form-select-sm">
-                        <option value="">— Sem categoria —</option>
-                    </select>
+                    <div class="dropdown w-100">
+                        <input type="hidden" id="e-categoria" value="">
+                        <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="e-categoria-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="e-categoria-label">— Sem categoria —</span>
+                        </button>
+                        <ul class="dropdown-menu entity-dropdown-menu w-100" id="e-categoria-menu">
+                            <!-- Populado dinamicamente -->
+                        </ul>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Descrição</label>
@@ -107,6 +123,25 @@
 <script>
     let todosModelos = [];
     let modeloRows = [];
+    let todasCategorias = [];
+
+    function setSelectValue(prefix, field, id, labelText) {
+        document.getElementById(`${prefix}-${field}`).value = id;
+        document.getElementById(`${prefix}-${field}-label`).textContent = labelText || `Selecione um ${field}`;
+        
+        const menu = document.getElementById(`${prefix}-${field}-menu`);
+        if (menu) {
+            const items = menu.querySelectorAll('.entity-dropdown-item');
+            items.forEach(item => {
+                const btnId = item.getAttribute('data-id');
+                if (btnId == id) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+    }
 
     function aplicarBusca() {
         const termo = document.getElementById('search-mod').value.toLowerCase();
@@ -152,15 +187,15 @@
             const count   = dispCount[m.id] || 0;
             const descTrunc = m.descricao && m.descricao.length > 50 ? m.descricao.slice(0,50) + '…' : (m.descricao || '—');
             const html = `<tr>
-                <td class="text-muted fw-medium">#${m.id}</td>
+                <td class="text-muted fw-medium">${m.id}</td>
                 <td class="fw-medium">${m.nome}</td>
                 <td>${catNome ? `<span class="tag-badge">${catNome}</span>` : '<span class="text-muted">—</span>'}</td>
                 <td class="text-muted" style="font-size:.8125rem;">${descTrunc}</td>
                 <td><span class="count-badge">${count} dispositivo${count !== 1 ? 's' : ''}</span></td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
-                        <button class="btn-action" onclick="abrirEdicao(${m.id})" title="Editar"><i class="bi bi-pencil"></i></button>
-                        <button class="btn-action btn-action-danger" onclick="excluir(${m.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                        <button class="btn-action-modern edit-trigger" onclick="abrirEdicao(${m.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-action-modern delete-trigger" onclick="excluir(${m.id})" title="Excluir"><i class="bi bi-trash"></i></button>
                     </div>
                 </td>
             </tr>`;
@@ -169,10 +204,25 @@
 
         renderRows(modeloRows);
 
-        ['f-categoria', 'e-categoria'].forEach(selId => {
-            const sel = document.getElementById(selId);
-            sel.innerHTML = '<option value="">— Sem categoria —</option>';
-            catArr.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`; });
+        todasCategorias = catArr;
+
+        ['f-categoria', 'e-categoria'].forEach(prefix => {
+            const menu = document.getElementById(`${prefix}-menu`);
+            if (menu) {
+                let html = `<li>
+                    <button class="entity-dropdown-item" type="button" data-id="" onclick="setSelectValue('${prefix.split('-')[0]}', 'categoria', '', '— Sem categoria —')">
+                        <span>— Sem categoria —</span>
+                    </button>
+                </li>`;
+                todasCategorias.forEach(c => {
+                    html += `<li>
+                        <button class="entity-dropdown-item" type="button" data-id="${c.id}" onclick="setSelectValue('${prefix.split('-')[0]}', 'categoria', ${c.id}, '${c.nome.replace(/'/g, "\\'")}')">
+                            <span>${c.nome}</span>
+                        </button>
+                    </li>`;
+                });
+                menu.innerHTML = html;
+            }
         });
     }
 
@@ -204,8 +254,10 @@
         if (!m) return;
         document.getElementById('e-id').value        = m.id;
         document.getElementById('e-nome').value      = m.nome;
-        document.getElementById('e-categoria').value = m.categoria || '';
         document.getElementById('e-descricao').value = m.descricao || '';
+        
+        const cat = todasCategorias.find(x => x.id == m.categoria) || {};
+        setSelectValue('e', 'categoria', m.categoria || '', cat.nome || '— Sem categoria —');
         new bootstrap.Modal(document.getElementById('modal-editar')).show();
     }
 
@@ -240,6 +292,14 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', carregar);
+    document.addEventListener('DOMContentLoaded', () => {
+        carregar();
+        const modalNovo = document.getElementById('modal-novo');
+        if (modalNovo) {
+            modalNovo.addEventListener('show.bs.modal', () => {
+                setSelectValue('f', 'categoria', '', '— Sem categoria —');
+            });
+        }
+    });
 </script>
 {% endblock %}

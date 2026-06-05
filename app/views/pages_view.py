@@ -5,6 +5,11 @@ class LoginPageView(TemplateView):
     template_name = 'login.html'
 
 
+class CadastroPageView(TemplateView):
+    template_name = 'cadastro.html'
+
+
+
 class DashboardPageView(TemplateView):
     template_name = 'dashboard.html'
 
