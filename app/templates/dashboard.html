@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard — ReporTi{% endblock %}
+{% block title %}Dashboard — ReporTI{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
@@ -62,12 +62,13 @@
             <tr>
                 <th>#</th>
                 <th>Título</th>
+                <th>Dispositivo</th>
                 <th>Status</th>
                 <th>Criado em</th>
             </tr>
         </thead>
         <tbody id="recent-tickets">
-            <tr><td colspan="4" class="text-center text-muted py-4">Carregando...</td></tr>
+            <tr><td colspan="5" class="text-center text-muted py-4">Carregando...</td></tr>
         </tbody>
     </table>
 </div>
@@ -80,39 +81,213 @@
         return `<span class="status-badge badge-${s}">${map[s] || s}</span>`;
     }
 
-    async function loadDashboard() {
-        const [tickets, dispositivos] = await Promise.all([
-            authFetch(`${API}/tickets/`).then(r => r.json()),
-            authFetch(`${API}/dispositivos/`).then(r => r.json()),
-        ]);
-
-        const all = Array.isArray(tickets) ? tickets : (tickets.results || []);
-        document.getElementById('count-aberto').textContent    = all.filter(t => t.status === 'aberto').length;
-        document.getElementById('count-andamento').textContent = all.filter(t => t.status === 'em_andamento').length;
-        document.getElementById('count-fechado').textContent   = all.filter(t => t.status === 'fechado').length;
-        document.getElementById('count-disp').textContent      = Array.isArray(dispositivos) ? dispositivos.length : (dispositivos.results || []).length;
-
-        const tbody = document.getElementById('recent-tickets');
-        const recent = all.slice(-10).reverse();
-        if (!recent.length) {
-            tbody.innerHTML = `<tr><td colspan="4">
-                <div class="empty-state">
-                    <i class="bi bi-ticket empty-state-icon"></i>
-                    <p class="empty-state-title">Nenhum ticket ainda</p>
-                    <p class="empty-state-sub">Crie um ticket para começar.</p>
-                </div>
-            </td></tr>`;
-            return;
+    function toggleDesc(event, id) {
+        if (event) event.stopPropagation();
+        const shortEl = document.getElementById(`desc-short-${id}`);
+        const fullEl = document.getElementById(`desc-full-${id}`);
+        const btnEl = event.currentTarget || event.target;
+        if (shortEl && fullEl && btnEl) {
+            if (fullEl.classList.contains('d-none')) {
+                fullEl.classList.remove('d-none');
+                shortEl.classList.add('d-none');
+                btnEl.textContent = 'Mostrar menos';
+            } else {
+                fullEl.classList.add('d-none');
+                shortEl.classList.remove('d-none');
+                btnEl.textContent = 'Mostrar mais';
+            }
         }
-        tbody.innerHTML = recent.map(t => `
-            <tr>
-                <td class="text-muted fw-medium">#${t.id}</td>
-                <td class="fw-medium">${t.titulo}</td>
-                <td>${statusBadge(t.status)}</td>
-                <td class="text-muted">${new Date(t.criado_em).toLocaleDateString('pt-BR')}</td>
-            </tr>`).join('');
     }
 
-    document.addEventListener('DOMContentLoaded', loadDashboard);
+    function toggleResol(event, id) {
+        if (event) event.stopPropagation();
+        const shortEl = document.getElementById(`resol-short-${id}`);
+        const fullEl = document.getElementById(`resol-full-${id}`);
+        const btnEl = event.currentTarget || event.target;
+        if (shortEl && fullEl && btnEl) {
+            if (fullEl.classList.contains('d-none')) {
+                fullEl.classList.remove('d-none');
+                shortEl.classList.add('d-none');
+                btnEl.textContent = 'Mostrar menos';
+            } else {
+                fullEl.classList.add('d-none');
+                shortEl.classList.remove('d-none');
+                btnEl.textContent = 'Mostrar mais';
+            }
+        }
+    }
+
+    function extrairResolucao(text) {
+        if (!text) return { descricao: '', resolucao: '' };
+        const marker = '\n\n[Resolução]: ';
+        const index = text.indexOf(marker);
+        if (index !== -1) {
+            return {
+                descricao: text.slice(0, index),
+                resolucao: text.slice(index + marker.length)
+            };
+        }
+        const marker2 = '\n\nResolução: ';
+        const index2 = text.indexOf(marker2);
+        if (index2 !== -1) {
+            return {
+                descricao: text.slice(0, index2),
+                resolucao: text.slice(index2 + marker2.length)
+            };
+        }
+        return {
+            descricao: text,
+            resolucao: ''
+        };
+    }
+
+    async function carregar() {
+        const selectedEntId = localStorage.getItem('selected_entidade_id');
+        if (!selectedEntId) {
+            const tbody = document.getElementById('recent-tickets');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="5">
+                    <div class="empty-state">
+                        <i class="bi bi-building empty-state-icon"></i>
+                        <p class="empty-state-title">Nenhuma Entidade Selecionada</p>
+                        <p class="empty-state-sub">Por favor, selecione uma entidade no cabeçalho do sistema.</p>
+                    </div>
+                </td></tr>`;
+            }
+            return;
+        }
+
+        try {
+            const [resTickets, resDisp, resSalas, resModelos] = await Promise.all([
+                authFetch(`${API}/tickets/`).then(r => r.json()),
+                authFetch(`${API}/dispositivos/`).then(r => r.json()),
+                authFetch(`${API}/salas/`).then(r => r.json()),
+                authFetch(`${API}/modelos/`).then(r => r.json()),
+            ]);
+
+            const ticketsArr = Array.isArray(resTickets) ? resTickets : (resTickets.results || []);
+            const dispArr = Array.isArray(resDisp) ? resDisp : (resDisp.results || []);
+            const salasArr = Array.isArray(resSalas) ? resSalas : (resSalas.results || []);
+            const modelosArr = Array.isArray(resModelos) ? resModelos : (resModelos.results || []);
+
+            const salaMap = Object.fromEntries(salasArr.map(s => [s.id, s]));
+            const modeloMap = Object.fromEntries(modelosArr.map(m => [m.id, m]));
+            const dispMap = Object.fromEntries(dispArr.map(d => [d.id, d]));
+
+            // Filtrar salas da entidade ativa
+            const salasFiltradas = selectedEntId === 'todas' ? salasArr : salasArr.filter(s => s.entidade == selectedEntId);
+            const salasFiltradasIds = salasFiltradas.map(s => s.id);
+ 
+            // Filtrar dispositivos da entidade ativa
+            const dispFiltrados = selectedEntId === 'todas' ? dispArr : dispArr.filter(d => salasFiltradasIds.includes(d.sala));
+            const dispFiltradosIds = dispFiltrados.map(d => d.id);
+ 
+            // Filtrar tickets da entidade ativa
+            const ticketsFiltrados = selectedEntId === 'todas' ? ticketsArr : ticketsArr.filter(t => !t.dispositivo || dispFiltradosIds.includes(t.dispositivo));
+
+            // Atualizar valores do dashboard
+            document.getElementById('count-aberto').textContent    = ticketsFiltrados.filter(t => t.status === 'aberto').length;
+            document.getElementById('count-andamento').textContent = ticketsFiltrados.filter(t => t.status === 'em_andamento').length;
+            document.getElementById('count-fechado').textContent   = ticketsFiltrados.filter(t => t.status === 'fechado').length;
+            document.getElementById('count-disp').textContent      = dispFiltrados.length;
+
+            const tbody = document.getElementById('recent-tickets');
+            const recent = ticketsFiltrados.slice(-10).reverse();
+            if (!recent.length) {
+                tbody.innerHTML = `<tr><td colspan="5">
+                    <div class="empty-state">
+                        <i class="bi bi-ticket empty-state-icon"></i>
+                        <p class="empty-state-title">Nenhum ticket ainda</p>
+                        <p class="empty-state-sub">Crie um ticket para começar.</p>
+                    </div>
+                </td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = recent.map(t => {
+                const disp = t.dispositivo ? dispMap[t.dispositivo] : null;
+                const sala = disp ? salaMap[disp.sala] : null;
+                const salaNome = sala ? sala.nome : '';
+                const modeloNome = disp && modeloMap[disp.modelo] ? modeloMap[disp.modelo].nome : '';
+                const dispNome = disp ? `${modeloNome} #${disp.id}` : '';
+
+                let dispCell = '<span class="text-muted">—</span>';
+                if (disp) {
+                    dispCell = `
+                        <span class="tag-badge">
+                            <i class="bi bi-pc-display" style="font-size:.7rem;"></i>${dispNome}
+                        </span>
+                    `;
+                }
+
+                const info = extrairResolucao(t.descricao);
+                const desc = info.descricao;
+                const resol = info.resolucao;
+
+                let descHtml = '';
+                if (desc) {
+                    if (desc.length > 50) {
+                        descHtml = `
+                            <span id="desc-short-${t.id}">${desc.slice(0, 50)}…</span>
+                            <span id="desc-full-${t.id}" class="d-none" style="word-break: break-word; white-space: normal;">${desc}</span>
+                            <button class="btn btn-link p-0 ms-1 text-primary fw-medium btn-sm" style="font-size: 0.7rem; text-decoration: none; vertical-align: baseline;" onclick="toggleDesc(event, ${t.id})">Mostrar mais</button>
+                        `;
+                    } else {
+                        descHtml = `<span style="word-break: break-word; white-space: normal;">${desc}</span>`;
+                    }
+                }
+
+                let resolHtml = '';
+                if (resol) {
+                    if (resol.length > 50) {
+                        resolHtml = `
+                            <div class="mt-1 d-flex align-items-start gap-1">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-start gap-1" style="font-size: 0.65rem; padding: 2px 6px; font-weight: 500; white-space: normal; word-break: break-word; text-align: left; max-width: 100%;">
+                                    <i class="bi bi-check-lg mt-0.5"></i>
+                                    <span>
+                                        <span>Resolução: </span>
+                                        <span id="resol-short-${t.id}">${resol.slice(0, 50)}…</span>
+                                        <span id="resol-full-${t.id}" class="d-none" style="word-break: break-word; white-space: normal;">${resol}</span>
+                                        <button class="btn btn-link p-0 ms-1 text-success fw-bold btn-sm" style="font-size: 0.65rem; text-decoration: underline; vertical-align: baseline;" onclick="toggleResol(event, ${t.id})">Mostrar mais</button>
+                                    </span>
+                                </span>
+                            </div>
+                        `;
+                    } else {
+                        resolHtml = `
+                            <div class="mt-1 d-flex align-items-center gap-1">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem; padding: 2px 6px; font-weight: 500; white-space: normal; word-break: break-word; text-align: left; max-width: 100%;">
+                                    <i class="bi bi-check-lg me-1"></i>Resolução: ${resol}
+                                </span>
+                            </div>
+                        `;
+                    }
+                }
+
+                return `
+                    <tr style="cursor: pointer;" onclick="window.location.href='/tickets/?search=${encodeURIComponent(dispNome || t.titulo)}'">
+                        <td class="text-muted fw-medium">#${t.id}</td>
+                        <td style="word-break: break-word; white-space: normal;">
+                            <span class="fw-medium">${t.titulo}</span>
+                            <br>
+                            <small class="text-muted" style="font-size: .75rem; word-break: break-word; white-space: normal;">
+                                ${salaNome ? `<i class="bi bi-door-open me-1"></i>${salaNome}` : '—'}
+                                ${desc ? ` • ${descHtml}` : ''}
+                            </small>
+                            ${resolHtml}
+                        </td>
+                        <td>${dispCell}</td>
+                        <td>${statusBadge(t.status)}</td>
+                        <td class="text-muted">${new Date(t.criado_em).toLocaleDateString('pt-BR')}</td>
+                    </tr>
+                `;
+            }).join('');
+
+        } catch (err) {
+            console.error("Erro ao carregar dashboard:", err);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', carregar);
 </script>
 {% endblock %}

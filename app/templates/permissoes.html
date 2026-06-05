@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Permissões — ReporTi{% endblock %}
+{% block title %}Permissões — ReporTI{% endblock %}
 {% block nav_permissoes %}active{% endblock %}
 {% block page_title %}Permissões{% endblock %}
 
@@ -63,7 +63,9 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Nova Permissão</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-shield-plus"></i> <span>Nova Permissão</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -85,7 +87,9 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Editar Permissão</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-pencil-square"></i> <span>Editar Permissão</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -108,21 +112,35 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Atribuir Permissão</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-person-badge"></i> <span>Atribuir Permissão</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
+                 <div class="mb-3">
                     <label class="form-label">Usuário <span class="text-danger">*</span></label>
-                    <select id="f-up-usuario" class="form-select form-select-sm">
-                        <option value="">Selecione um usuário</option>
-                    </select>
+                    <div class="dropdown w-100">
+                        <input type="hidden" id="f-up-usuario" value="">
+                        <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="f-up-usuario-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="f-up-usuario-label">Selecione um usuário</span>
+                        </button>
+                        <ul class="dropdown-menu entity-dropdown-menu w-100" id="f-up-usuario-menu">
+                            <!-- Populado dinamicamente -->
+                        </ul>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Permissão <span class="text-danger">*</span></label>
-                    <select id="f-up-permissao" class="form-select form-select-sm">
-                        <option value="">Selecione uma permissão</option>
-                    </select>
+                    <div class="dropdown w-100">
+                        <input type="hidden" id="f-up-permissao" value="">
+                        <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="f-up-permissao-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="f-up-permissao-label">Selecione uma permissão</span>
+                        </button>
+                        <ul class="dropdown-menu entity-dropdown-menu w-100" id="f-up-permissao-menu">
+                            <!-- Populado dinamicamente -->
+                        </ul>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -137,6 +155,26 @@
 {% block scripts %}
 <script>
     let todasPermissoes = [];
+    let todosUsuarios = [];
+    let todasPermissoesLista = [];
+
+    function setSelectValue(prefix, field, id, labelText) {
+        document.getElementById(`${prefix}-${field}`).value = id;
+        document.getElementById(`${prefix}-${field}-label`).textContent = labelText || `Selecione um ${field}`;
+        
+        const menu = document.getElementById(`${prefix}-${field}-menu`);
+        if (menu) {
+            const items = menu.querySelectorAll('.entity-dropdown-item');
+            items.forEach(item => {
+                const btnId = item.getAttribute('data-id');
+                if (btnId == id) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+    }
 
     async function carregar() {
         const [resPerms, resUPs, resUsers] = await Promise.all([
@@ -167,12 +205,12 @@
         } else {
             tbody.innerHTML = permArr.map(p => `
                 <tr>
-                    <td class="text-muted fw-medium">#${p.id}</td>
+                    <td class="text-muted fw-medium">${p.id}</td>
                     <td class="fw-medium">${p.nome}</td>
                     <td>
                         <div class="d-flex gap-1 justify-content-end">
-                            <button class="btn-action" onclick="abrirEdicaoPerm(${p.id})" title="Editar"><i class="bi bi-pencil"></i></button>
-                            <button class="btn-action btn-action-danger" onclick="excluirPermissao(${p.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                            <button class="btn-action-modern edit-trigger" onclick="abrirEdicaoPerm(${p.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                            <button class="btn-action-modern delete-trigger" onclick="excluirPermissao(${p.id})" title="Excluir"><i class="bi bi-trash"></i></button>
                         </div>
                     </td>
                 </tr>`).join('');
@@ -190,26 +228,42 @@
         } else {
             upTbody.innerHTML = upArr.map(up => `
                 <tr>
-                    <td class="text-muted fw-medium">#${up.id}</td>
-                    <td class="fw-medium">${userMap[up.usuario] || `#${up.usuario}`}</td>
-                    <td><span class="tag-badge"><i class="bi bi-shield-check" style="font-size:.7rem;"></i>${permMap[up.permissao] || `#${up.permissao}`}</span></td>
+                    <td class="text-muted fw-medium">${up.id}</td>
+                    <td class="fw-medium">${userMap[up.usuario] || `${up.usuario}`}</td>
+                    <td><span class="tag-badge"><i class="bi bi-shield-check" style="font-size:.7rem;"></i>${permMap[up.permissao] || `${up.permissao}`}</span></td>
                     <td class="text-muted">${up.data ? new Date(up.data).toLocaleDateString('pt-BR') : '—'}</td>
                     <td>
                         <div class="d-flex justify-content-end">
-                            <button class="btn-action btn-action-danger" onclick="revogar(${up.id})" title="Revogar"><i class="bi bi-x-lg"></i></button>
+                            <button class="btn-action-modern delete-trigger" onclick="revogar(${up.id})" title="Revogar"><i class="bi bi-x-lg"></i></button>
                         </div>
                     </td>
                 </tr>`).join('');
         }
 
-        // Preencher selects
-        const selUser = document.getElementById('f-up-usuario');
-        selUser.innerHTML = '<option value="">Selecione um usuário</option>';
-        userArr.forEach(u => { selUser.innerHTML += `<option value="${u.id}">${u.username}</option>`; });
+        todosUsuarios = userArr;
+        todasPermissoesLista = permArr;
 
-        const selPerm = document.getElementById('f-up-permissao');
-        selPerm.innerHTML = '<option value="">Selecione uma permissão</option>';
-        permArr.forEach(p => { selPerm.innerHTML += `<option value="${p.id}">${p.nome}</option>`; });
+        const menuUser = document.getElementById('f-up-usuario-menu');
+        if (menuUser) {
+            menuUser.innerHTML = todosUsuarios.map(u => `
+                <li>
+                    <button class="entity-dropdown-item" type="button" data-id="${u.id}" onclick="setSelectValue('f-up', 'usuario', ${u.id}, '${u.username.replace(/'/g, "\\'")}')">
+                        <span>${u.username}</span>
+                    </button>
+                </li>
+            `).join('');
+        }
+
+        const menuPerm = document.getElementById('f-up-permissao-menu');
+        if (menuPerm) {
+            menuPerm.innerHTML = todasPermissoesLista.map(p => `
+                <li>
+                    <button class="entity-dropdown-item" type="button" data-id="${p.id}" onclick="setSelectValue('f-up', 'permissao', ${p.id}, '${p.nome.replace(/'/g, "\\'")}')">
+                        <span>${p.nome}</span>
+                    </button>
+                </li>
+            `).join('');
+        }
     }
 
     async function criarPermissao() {
@@ -291,6 +345,15 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', carregar);
+    document.addEventListener('DOMContentLoaded', () => {
+        carregar();
+        const modalAtribuir = document.getElementById('modal-atribuir');
+        if (modalAtribuir) {
+            modalAtribuir.addEventListener('show.bs.modal', () => {
+                setSelectValue('f-up', 'usuario', '', 'Selecione um usuário');
+                setSelectValue('f-up', 'permissao', '', 'Selecione uma permissão');
+            });
+        }
+    });
 </script>
 {% endblock %}

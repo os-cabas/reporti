@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Usuários — ReporTi{% endblock %}
+{% block title %}Usuários — ReporTI{% endblock %}
 {% block nav_usuarios %}active{% endblock %}
 {% block page_title %}Usuários{% endblock %}
 
@@ -43,7 +43,9 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Novo Usuário</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-person-plus"></i> <span>Novo Usuário</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -93,7 +95,9 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Editar Usuário</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-pencil-square"></i> <span>Editar Usuário</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -177,7 +181,7 @@
                 ? `<span class="status-badge" style="background:#eff6ff;color:#3b82f6;border-color:#bfdbfe;">Staff</span>`
                 : `<span class="tag-badge">Usuário</span>`;
             const html = `<tr>
-                <td class="text-muted fw-medium">#${u.id}</td>
+                <td class="text-muted fw-medium">${u.id}</td>
                 <td class="fw-medium">${u.username}</td>
                 <td>${nome}</td>
                 <td class="text-muted">${u.email || '—'}</td>
@@ -185,8 +189,8 @@
                 <td>${staffBadge}</td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
-                        <button class="btn-action" onclick="abrirEdicao(${u.id})" title="Editar"><i class="bi bi-pencil"></i></button>
-                        <button class="btn-action btn-action-danger" onclick="excluir(${u.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                        <button class="btn-action-modern edit-trigger" onclick="abrirEdicao(${u.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-action-modern delete-trigger" onclick="excluir(${u.id})" title="Excluir"><i class="bi bi-trash"></i></button>
                     </div>
                 </td>
             </tr>`;

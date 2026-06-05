@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from app.views.pages_view import (
-    LoginPageView, DashboardPageView, TicketsPageView,
+    LoginPageView, CadastroPageView, DashboardPageView, TicketsPageView,
     DispositivosPageView, SalasPageView, EntidadesPageView,
     CategoriasPageView, ModelosPageView, UsuariosPageView, PermissoesPageView,
 )
@@ -19,6 +19,8 @@ urlpatterns = [
 
     # Pages
     path('login/', LoginPageView.as_view(), name='login'),
+    path('cadastro/', CadastroPageView.as_view(), name='cadastro'),
+
     path('tickets/', TicketsPageView.as_view(), name='tickets'),
     path('dispositivos/', DispositivosPageView.as_view(), name='dispositivos'),
     path('salas/', SalasPageView.as_view(), name='salas'),

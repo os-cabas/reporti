@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Salas — ReporTi{% endblock %}
+{% block title %}Salas — ReporTI{% endblock %}
 {% block nav_salas %}active{% endblock %}
 {% block page_title %}Salas{% endblock %}
 
@@ -19,22 +19,15 @@
     </div>
 </div>
 
-<div class="table-card">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Nome</th>
-                <th>Andar</th>
-                <th>Número</th>
-                <th>Entidade</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody id="salas-body">
-            <tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>
-        </tbody>
-    </table>
+<div id="salas-por-entidade" class="row">
+    <div class="col-12">
+        <div class="table-card py-5 text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="text-muted mt-2 mb-0">Carregando salas...</p>
+        </div>
+    </div>
 </div>
 
 <!-- Modal nova sala -->
@@ -42,7 +35,9 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Nova Sala</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary" id="modal-novo-title">
+                    <i class="bi bi-door-open"></i> <span>Nova Sala</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -60,12 +55,7 @@
                         <input type="text" id="f-numero" class="form-control form-control-sm" placeholder="Ex: 204">
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Entidade <span class="text-danger">*</span></label>
-                    <select id="f-entidade" class="form-select form-select-sm">
-                        <option value="">Selecione uma entidade</option>
-                    </select>
-                </div>
+                <input type="hidden" id="f-entidade" value="">
             </div>
             <div class="modal-footer">
                 <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -80,7 +70,9 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Editar Sala</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-pencil-square"></i> <span>Editar Sala</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -101,14 +93,43 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Entidade <span class="text-danger">*</span></label>
-                    <select id="e-entidade" class="form-select form-select-sm">
-                        <option value="">Selecione uma entidade</option>
-                    </select>
+                    <div class="dropdown w-100">
+                        <input type="hidden" id="e-entidade" value="">
+                        <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="e-entidade-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="e-entidade-label">Selecione uma entidade</span>
+                        </button>
+                        <ul class="dropdown-menu entity-dropdown-menu w-100" id="e-entidade-menu">
+                            <!-- Populado dinamicamente -->
+                        </ul>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button class="btn btn-sm btn-primary" onclick="salvarEdicao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Exclusão -->
+<div class="modal fade" id="modal-excluir" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title text-danger d-flex align-items-center gap-2 fw-bold">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Confirmar Exclusão
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="excluir-sala-id">
+                <p class="mb-1">Tem certeza que deseja excluir a sala <strong id="excluir-sala-nome"></strong>?</p>
+                <span class="text-muted small">Os dispositivos vinculados perderão a referência. Esta ação não poderá ser desfeita.</span>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-danger" onclick="confirmarExclusao()" id="btn-confirmar-excluir">Excluir</button>
             </div>
         </div>
     </div>
@@ -119,6 +140,30 @@
 <script>
     let todasSalas = [];
     let salaRows = [];
+    let todasEntidades = [];
+
+    function setSelectValue(prefix, field, id, labelText) {
+        const input = document.getElementById(`${prefix}-${field}`);
+        if (input) input.value = id;
+        
+        const label = document.getElementById(`${prefix}-${field}-label`);
+        if (label) {
+            label.textContent = labelText || `Selecione um ${field}`;
+        }
+        
+        const menu = document.getElementById(`${prefix}-${field}-menu`);
+        if (menu) {
+            const items = menu.querySelectorAll('.entity-dropdown-item');
+            items.forEach(item => {
+                const btnId = item.getAttribute('data-id');
+                if (btnId == id) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+    }
 
     function aplicarBusca() {
         const termo = document.getElementById('search-salas').value.toLowerCase();
@@ -127,18 +172,82 @@
     }
 
     function renderRows(rows) {
-        const tbody = document.getElementById('salas-body');
+        const container = document.getElementById('salas-por-entidade');
         if (!rows.length) {
-            tbody.innerHTML = `<tr><td colspan="6">
-                <div class="empty-state">
-                    <i class="bi bi-door-open empty-state-icon"></i>
-                    <p class="empty-state-title">Nenhuma sala encontrada</p>
-                    <p class="empty-state-sub">Cadastre uma nova sala ou ajuste a busca.</p>
+            container.innerHTML = `<div class="col-12">
+                <div class="table-card p-5 text-center">
+                    <div class="empty-state">
+                        <i class="bi bi-door-open empty-state-icon"></i>
+                        <p class="empty-state-title">Nenhuma sala encontrada</p>
+                        <p class="empty-state-sub">Cadastre uma nova sala ou ajuste a busca.</p>
+                    </div>
                 </div>
-            </td></tr>`;
+            </div>`;
             return;
         }
-        tbody.innerHTML = rows.map(r => r.html).join('');
+
+        const grupos = {};
+        rows.forEach(r => {
+            const entId = r.entidadeId || 'sem-entidade';
+            if (!grupos[entId]) {
+                grupos[entId] = {
+                    entNome: r.entNome,
+                    salas: []
+                };
+            }
+            grupos[entId].salas.push(r);
+        });
+
+        container.innerHTML = Object.values(grupos).map(g => {
+            const entNome = g.entNome || 'Sem Entidade Definida';
+
+            const rowsHtml = g.salas.map(s => {
+                return `
+                    <tr>
+                        <td class="text-muted fw-medium">${s.id}</td>
+                        <td class="fw-medium">${s.nome}</td>
+                        <td>${s.andar}º Andar</td>
+                        <td>${s.numero}</td>
+                        <td>
+                            <div class="d-flex gap-1 justify-content-end">
+                                <button class="btn-action-modern edit-trigger" onclick="abrirEdicao(${s.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                                <button class="btn-action-modern delete-trigger" onclick="excluir(${s.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="col-12 mb-4">
+                    <div class="table-card">
+                        <div class="table-card-header d-flex align-items-center justify-content-between py-3 px-4" style="background: #fafafa; border-bottom: 1px solid var(--border);">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-building text-primary fs-5"></i>
+                                <span class="fw-bold text-primary" style="font-size: 0.95rem;">${entNome}</span>
+                            </div>
+                            <span class="count-badge">${g.salas.length} ${g.salas.length === 1 ? 'sala' : 'salas'}</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 80px;">ID</th>
+                                        <th style="width: 40%;">Nome</th>
+                                        <th style="width: 25%;">Andar</th>
+                                        <th style="width: 25%;">Número</th>
+                                        <th style="width: 120px;" class="text-end">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
     async function carregar() {
@@ -149,34 +258,38 @@
         todasSalas = await resSalas.json();
         const entidades = await resEntidades.json();
 
-        const entArr = Array.isArray(entidades) ? entidades : entidades.results || [];
-        const entMap = Object.fromEntries(entArr.map(e => [e.id, e.nome]));
+        todasEntidades = Array.isArray(entidades) ? entidades : entidades.results || [];
+        const entMap = Object.fromEntries(todasEntidades.map(e => [e.id, e.nome]));
         const lista  = Array.isArray(todasSalas) ? todasSalas : (todasSalas.results || []);
-
-        salaRows = lista.map(s => {
+        const selectedEntId = localStorage.getItem('selected_entidade_id');
+        const listaFiltrada = selectedEntId === 'todas' ? lista : lista.filter(s => s.entidade == selectedEntId);
+        
+        salaRows = listaFiltrada.map(s => {
             const entNome = entMap[s.entidade] || String(s.entidade);
-            const html = `<tr>
-                <td class="text-muted fw-medium">#${s.id}</td>
-                <td class="fw-medium">${s.nome}</td>
-                <td>${s.andar}</td>
-                <td>${s.numero}</td>
-                <td>${entNome}</td>
-                <td>
-                    <div class="d-flex gap-1 justify-content-end">
-                        <button class="btn-action" onclick="abrirEdicao(${s.id})" title="Editar"><i class="bi bi-pencil"></i></button>
-                        <button class="btn-action btn-action-danger" onclick="excluir(${s.id})" title="Excluir"><i class="bi bi-trash"></i></button>
-                    </div>
-                </td>
-            </tr>`;
-            return { id: s.id, termo: `${s.nome} ${entNome}`.toLowerCase(), html };
+            return {
+                id: s.id,
+                nome: s.nome,
+                andar: s.andar,
+                numero: s.numero,
+                entidadeId: s.entidade,
+                entNome: entNome,
+                termo: `${s.nome} ${entNome}`.toLowerCase()
+            };
         });
 
         renderRows(salaRows);
 
-        ['f-entidade', 'e-entidade'].forEach(selId => {
-            const sel = document.getElementById(selId);
-            sel.innerHTML = '<option value="">Selecione uma entidade</option>';
-            entArr.forEach(e => { sel.innerHTML += `<option value="${e.id}">${e.nome}</option>`; });
+        ['f-entidade', 'e-entidade'].forEach(prefix => {
+            const menu = document.getElementById(`${prefix}-menu`);
+            if (menu) {
+                menu.innerHTML = todasEntidades.map(e => `
+                    <li>
+                        <button class="entity-dropdown-item" type="button" data-id="${e.id}" onclick="setSelectValue('${prefix.split('-')[0]}', 'entidade', ${e.id}, '${e.nome.replace(/'/g, "\\'")}')">
+                            <span>${e.nome}</span>
+                        </button>
+                    </li>
+                `).join('');
+            }
         });
     }
 
@@ -208,7 +321,10 @@
         document.getElementById('e-nome').value    = s.nome;
         document.getElementById('e-andar').value   = s.andar;
         document.getElementById('e-numero').value  = s.numero;
-        document.getElementById('e-entidade').value = s.entidade;
+        
+        const ent = todasEntidades.find(x => x.id == s.entidade) || {};
+        setSelectValue('e', 'entidade', s.entidade || '', ent.nome || 'Selecione uma entidade');
+        
         new bootstrap.Modal(document.getElementById('modal-editar')).show();
     }
 
@@ -232,13 +348,59 @@
         }
     }
 
-    async function excluir(id) {
-        if (!confirm('Excluir esta sala? Dispositivos vinculados perderão a referência.')) return;
-        await authFetch(`${API}/salas/${id}/`, { method: 'DELETE' });
-        await carregar();
-        toast('Sala excluída.', 'default');
+    function excluir(id) {
+        const lista = Array.isArray(todasSalas) ? todasSalas : todasSalas.results || [];
+        const s = lista.find(x => x.id === id);
+        if (!s) return;
+
+        document.getElementById('excluir-sala-id').value = s.id;
+        document.getElementById('excluir-sala-nome').textContent = `${s.nome} (#${s.id})`;
+
+        new bootstrap.Modal(document.getElementById('modal-excluir')).show();
     }
 
-    document.addEventListener('DOMContentLoaded', carregar);
+    async function confirmarExclusao() {
+        const id = document.getElementById('excluir-sala-id').value;
+        const btn = document.getElementById('btn-confirmar-excluir');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Excluindo...';
+
+        try {
+            const res = await authFetch(`${API}/salas/${id}/`, { method: 'DELETE' });
+            if (res.ok || res.status === 204) {
+                bootstrap.Modal.getInstance(document.getElementById('modal-excluir')).hide();
+                await carregar();
+                toast('Sala excluída com sucesso.', 'default');
+            } else {
+                toast('Erro ao excluir sala.', 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            toast('Erro ao conectar com o servidor.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Excluir';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        carregar();
+        const modalNovo = document.getElementById('modal-novo');
+        if (modalNovo) {
+            modalNovo.addEventListener('show.bs.modal', () => {
+                const selectedEntId = localStorage.getItem('selected_entidade_id');
+                const ent = todasEntidades.find(x => x.id == selectedEntId) || {};
+                const titleEl = document.getElementById('modal-novo-title');
+                if (titleEl) {
+                    titleEl.innerHTML = `<i class="bi bi-door-open"></i> <span>Nova Sala em ${ent.nome || ''}</span>`;
+                }
+                if (selectedEntId) {
+                    setSelectValue('f', 'entidade', selectedEntId, ent.nome || 'Selecione uma entidade');
+                } else {
+                    setSelectValue('f', 'entidade', '', 'Selecione uma entidade');
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

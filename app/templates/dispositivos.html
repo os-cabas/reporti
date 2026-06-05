@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Dispositivos — ReporTi{% endblock %}
+{% block title %}Dispositivos — ReporTI{% endblock %}
 {% block nav_dispositivos %}active{% endblock %}
 {% block page_title %}Dispositivos{% endblock %}
 
@@ -11,6 +11,15 @@
             <i class="bi bi-search"></i>
             <input type="text" class="search-input" id="search-disp" placeholder="Buscar dispositivo…" oninput="aplicarBusca()">
         </div>
+        <div class="dropdown" style="min-width: 170px;">
+            <input type="hidden" id="filtro-sala" value="">
+            <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="filtro-sala-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                <span id="filtro-sala-label">Todas as salas</span>
+            </button>
+            <ul class="dropdown-menu entity-dropdown-menu w-100" id="filtro-sala-menu">
+                <!-- Populado dinamicamente -->
+            </ul>
+        </div>
     </div>
     <div class="toolbar-right">
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
@@ -19,23 +28,15 @@
     </div>
 </div>
 
-<div class="table-card">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Modelo</th>
-                <th>Categoria</th>
-                <th>Sala</th>
-                <th>Andar</th>
-                <th>Entidade</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody id="disp-body">
-            <tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>
-        </tbody>
-    </table>
+<div id="dispositivos-por-sala" class="row">
+    <div class="col-12">
+        <div class="table-card py-5 text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="text-muted mt-2 mb-0">Carregando dispositivos...</p>
+        </div>
+    </div>
 </div>
 
 <!-- Modal novo dispositivo -->
@@ -43,21 +44,44 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Novo Dispositivo</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary" id="modal-novo-title">
+                    <i class="bi bi-pc-display"></i> <span>Novo Dispositivo</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label">Sala <span class="text-danger">*</span></label>
-                    <select id="f-sala" class="form-select form-select-sm">
-                        <option value="">Selecione uma sala</option>
-                    </select>
+                    <div class="dropdown w-100">
+                        <input type="hidden" id="f-sala" value="">
+                        <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="f-sala-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="f-sala-label">Selecione uma sala</span>
+                        </button>
+                        <ul class="dropdown-menu entity-dropdown-menu w-100" id="f-sala-menu">
+                            <!-- Populado dinamicamente -->
+                        </ul>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Modelo <span class="text-danger">*</span></label>
-                    <select id="f-modelo" class="form-select form-select-sm">
-                        <option value="">Selecione um modelo</option>
-                    </select>
+                    <div class="dropdown w-100">
+                        <input type="hidden" id="f-modelo" value="">
+                        <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="f-modelo-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="f-modelo-label">Selecione um modelo</span>
+                        </button>
+                        <ul class="dropdown-menu entity-dropdown-menu w-100" id="f-modelo-menu">
+                            <!-- Populado dinamicamente -->
+                        </ul>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <input type="hidden" id="f-status" value="ativo">
+                    <div class="btn-group w-100" id="f-status-group" role="group">
+                        <button type="button" class="btn btn-outline-success active" data-status="ativo" onclick="selecionarStatus('f', 'ativo')">Ativo</button>
+                        <button type="button" class="btn btn-outline-warning" data-status="manutencao" onclick="selecionarStatus('f', 'manutencao')">Em Manutenção</button>
+                        <button type="button" class="btn btn-outline-danger" data-status="inativo" onclick="selecionarStatus('f', 'inativo')">Inativo</button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -73,27 +97,156 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title">Editar Dispositivo</h6>
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-pencil-square"></i> <span>Editar Dispositivo</span>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="e-id">
                 <div class="mb-3">
                     <label class="form-label">Sala <span class="text-danger">*</span></label>
-                    <select id="e-sala" class="form-select form-select-sm">
-                        <option value="">Selecione uma sala</option>
-                    </select>
+                    <div class="dropdown w-100">
+                        <input type="hidden" id="e-sala" value="">
+                        <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="e-sala-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="e-sala-label">Selecione uma sala</span>
+                        </button>
+                        <ul class="dropdown-menu entity-dropdown-menu w-100" id="e-sala-menu">
+                            <!-- Populado dinamicamente -->
+                        </ul>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Modelo <span class="text-danger">*</span></label>
-                    <select id="e-modelo" class="form-select form-select-sm">
-                        <option value="">Selecione um modelo</option>
-                    </select>
+                    <div class="dropdown w-100">
+                        <input type="hidden" id="e-modelo" value="">
+                        <button class="entity-dropdown-btn dropdown-toggle w-100 justify-content-between text-start" type="button" id="e-modelo-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="e-modelo-label">Selecione um modelo</span>
+                        </button>
+                        <ul class="dropdown-menu entity-dropdown-menu w-100" id="e-modelo-menu">
+                            <!-- Populado dinamicamente -->
+                        </ul>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <input type="hidden" id="e-status" value="ativo">
+                    <div class="btn-group w-100" id="e-status-group" role="group">
+                        <button type="button" class="btn btn-outline-success" data-status="ativo" onclick="selecionarStatus('e', 'ativo')">Ativo</button>
+                        <button type="button" class="btn btn-outline-warning" data-status="manutencao" onclick="selecionarStatus('e', 'manutencao')">Em Manutenção</button>
+                        <button type="button" class="btn btn-outline-danger" data-status="inativo" onclick="selecionarStatus('e', 'inativo')">Inativo</button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button class="btn btn-sm btn-primary" onclick="salvarEdicao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal QR Code -->
+<div class="modal fade" id="modal-qrcode" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
+        <div class="modal-content">
+            <div class="modal-header py-3">
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-qr-code-scan"></i> QR Code do Dispositivo
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <div class="d-inline-flex p-3 bg-white border rounded shadow-sm mb-4">
+                    <img id="qr-image" src="" alt="QR Code" style="width: 180px; height: 180px; display: block;" />
+                </div>
+                <div class="text-start bg-light rounded-3 p-3 mb-3 border">
+                    <div class="row g-2 small">
+                        <div class="col-4 text-muted fw-semibold">ID:</div>
+                        <div class="col-8 fw-bold text-primary" id="qr-info-id">—</div>
+                        
+                        <div class="col-4 text-muted fw-semibold">Modelo:</div>
+                        <div class="col-8 text-dark" id="qr-info-modelo">—</div>
+                        
+                        <div class="col-4 text-muted fw-semibold">Categoria:</div>
+                        <div class="col-8 text-dark" id="qr-info-categoria">—</div>
+                        
+                        <div class="col-4 text-muted fw-semibold">Sala:</div>
+                        <div class="col-8 text-dark" id="qr-info-sala">—</div>
+                        
+                        <div class="col-4 text-muted fw-semibold">Entidade:</div>
+                        <div class="col-8 text-dark" id="qr-info-entidade">—</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary w-100 fw-semibold py-2" id="btn-download-qr">
+                    <i class="bi bi-download me-2"></i>Baixar QR Code
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Exclusão -->
+<div class="modal fade" id="modal-excluir" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title text-danger d-flex align-items-center gap-2 fw-bold">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Confirmar Exclusão
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="excluir-disp-id">
+                <p class="mb-1">Tem certeza que deseja excluir o dispositivo <strong id="excluir-disp-nome"></strong>?</p>
+                <span class="text-muted small">Esta ação não poderá ser desfeita.</span>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-danger" onclick="confirmarExclusao()" id="btn-confirmar-excluir">Excluir</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Histórico de Tickets -->
+<div class="modal fade" id="modal-historico" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title d-flex align-items-center gap-2 fw-bold text-primary">
+                    <i class="bi bi-clock-history"></i> <span id="historico-modal-title">Histórico de Tickets do Dispositivo</span>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="historico-loading" class="text-center py-4">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <span class="text-muted ms-2">Carregando histórico...</span>
+                </div>
+                <div id="historico-vazio" class="text-center py-4 d-none">
+                    <i class="bi bi-ticket-perforated text-muted fs-3 mb-2 d-block"></i>
+                    <p class="text-muted mb-0">Não há histórico de tickets para este dispositivo.</p>
+                </div>
+                <div id="historico-tabela-wrap" class="table-responsive d-none">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">ID</th>
+                                <th>Título</th>
+                                <th style="width: 150px;">Status</th>
+                                <th style="width: 150px;">Criado em</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historico-tbody">
+                            <!-- Populados via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
@@ -104,26 +257,214 @@
 <script>
     let salas = [], modelos = [], categorias = [], entidades = [], dispositivos = [];
     let dispRows = [];
+    let todasEntidades = [];
+
+    // Funções auxiliares para persistência de status do dispositivo
+    function getStatusInfo(id) {
+        const statuses = JSON.parse(localStorage.getItem('dispositivo_statuses') || '{}');
+        const status = statuses[id] || 'ativo';
+        const map = {
+            ativo: { text: 'Ativo', class: 'badge-ativo' },
+            manutencao: { text: 'Em Manutenção', class: 'badge-manutencao' },
+            inativo: { text: 'Inativo', class: 'badge-inativo' }
+        };
+        return map[status] || map.ativo;
+    }
+
+    function setStatusInfo(id, status) {
+        const statuses = JSON.parse(localStorage.getItem('dispositivo_statuses') || '{}');
+        statuses[id] = status;
+        localStorage.setItem('dispositivo_statuses', JSON.stringify(statuses));
+    }
+
+    function setSelectValue(prefix, field, id, labelText) {
+        document.getElementById(`${prefix}-${field}`).value = id;
+        document.getElementById(`${prefix}-${field}-label`).textContent = labelText || `Selecione um ${field}`;
+        
+        const menu = document.getElementById(`${prefix}-${field}-menu`);
+        if (menu) {
+            const items = menu.querySelectorAll('.entity-dropdown-item');
+            items.forEach(item => {
+                const btnId = item.getAttribute('data-id');
+                if (btnId == id) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+        if (prefix === 'filtro' && field === 'sala') {
+            aplicarBusca();
+        }
+    }
+
+    function selecionarStatus(prefix, status) {
+        document.getElementById(`${prefix}-status`).value = status;
+        const container = document.getElementById(`${prefix}-status-group`);
+        if (container) {
+            const buttons = container.querySelectorAll('.btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            const targetBtn = container.querySelector(`[data-status="${status}"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            }
+        }
+    }
+
+    async function abrirHistorico(dispId) {
+        const modalEl = document.getElementById('modal-historico');
+        const titleEl = document.getElementById('historico-modal-title');
+        const loadingEl = document.getElementById('historico-loading');
+        const vazioEl = document.getElementById('historico-vazio');
+        const wrapEl = document.getElementById('historico-tabela-wrap');
+        const tbodyEl = document.getElementById('historico-tbody');
+
+        const d = dispRows.find(x => x.id === dispId);
+        titleEl.textContent = d ? `Histórico de Tickets: ${d.modelo.nome || 'Dispositivo'} #${dispId}` : `Histórico de Tickets: Dispositivo #${dispId}`;
+
+        loadingEl.classList.remove('d-none');
+        vazioEl.classList.add('d-none');
+        wrapEl.classList.add('d-none');
+        tbodyEl.innerHTML = '';
+
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        try {
+            const res = await authFetch(`${API}/tickets/`);
+            if (res.ok) {
+                const data = await res.json();
+                const tickets = Array.isArray(data) ? data : (data.results || []);
+                const ticketsDisp = tickets.filter(t => t.dispositivo == dispId);
+
+                loadingEl.classList.add('d-none');
+                if (ticketsDisp.length === 0) {
+                    vazioEl.classList.remove('d-none');
+                } else {
+                    const statusMap = { aberto: 'Aberto', em_andamento: 'Em andamento', fechado: 'Fechado' };
+                    const badgeClassMap = { aberto: 'badge-aberto', em_andamento: 'badge-em_andamento', fechado: 'badge-fechado' };
+                    tbodyEl.innerHTML = ticketsDisp.map(t => `
+                        <tr>
+                            <td class="text-muted fw-medium">${t.id}</td>
+                            <td>
+                                <span class="fw-medium">${t.titulo}</span>
+                                ${t.descricao ? `<br><small class="text-muted" style="font-size:.75rem;">${t.descricao}</small>` : ''}
+                            </td>
+                            <td><span class="status-badge ${badgeClassMap[t.status] || ''}">${statusMap[t.status] || t.status}</span></td>
+                            <td class="text-muted">${new Date(t.criado_em).toLocaleDateString('pt-BR')}</td>
+                        </tr>
+                    `).join('');
+                    wrapEl.classList.remove('d-none');
+                }
+            } else {
+                loadingEl.classList.add('d-none');
+                toast('Erro ao buscar histórico de tickets.', 'error');
+            }
+        } catch (e) {
+            loadingEl.classList.add('d-none');
+            console.error(e);
+            toast('Erro ao buscar histórico.', 'error');
+        }
+    }
 
     function aplicarBusca() {
         const termo = document.getElementById('search-disp').value.toLowerCase();
-        const filtrados = termo ? dispRows.filter(r => r.termo.includes(termo)) : dispRows;
+        const salaId = document.getElementById('filtro-sala').value;
+        
+        let filtrados = dispRows;
+        if (termo) {
+            filtrados = filtrados.filter(r => r.termo.includes(termo));
+        }
+        if (salaId) {
+            filtrados = filtrados.filter(r => r.sala.id == salaId);
+        }
         renderRows(filtrados);
     }
 
     function renderRows(rows) {
-        const tbody = document.getElementById('disp-body');
+        const container = document.getElementById('dispositivos-por-sala');
         if (!rows.length) {
-            tbody.innerHTML = `<tr><td colspan="7">
-                <div class="empty-state">
-                    <i class="bi bi-pc-display empty-state-icon"></i>
-                    <p class="empty-state-title">Nenhum dispositivo encontrado</p>
-                    <p class="empty-state-sub">Cadastre um novo dispositivo ou ajuste a busca.</p>
+            container.innerHTML = `<div class="col-12">
+                <div class="table-card p-5 text-center">
+                    <div class="empty-state">
+                        <i class="bi bi-pc-display empty-state-icon"></i>
+                        <p class="empty-state-title">Nenhum dispositivo encontrado</p>
+                        <p class="empty-state-sub">Cadastre um novo dispositivo ou ajuste a busca.</p>
+                    </div>
                 </div>
-            </td></tr>`;
+            </div>`;
             return;
         }
-        tbody.innerHTML = rows.map(r => r.html).join('');
+
+        const grupos = {};
+        rows.forEach(r => {
+            const salaId = r.sala.id || 'sem-sala';
+            if (!grupos[salaId]) {
+                grupos[salaId] = {
+                    sala: r.sala,
+                    entNome: r.entNome,
+                    dispositivos: []
+                };
+            }
+            grupos[salaId].dispositivos.push(r);
+        });
+
+        container.innerHTML = Object.values(grupos).map(g => {
+            const salaNome = g.sala.nome || 'Sem Sala Definida';
+            const andarText = g.sala.andar !== undefined ? `Andar ${g.sala.andar}` : '—';
+            const entText = g.entNome || '—';
+
+            const rowsHtml = g.dispositivos.map(d => {
+                const statusData = getStatusInfo(d.id);
+                return `
+                    <tr>
+                        <td class="text-muted fw-medium">${d.id}</td>
+                        <td class="fw-medium">${d.modelo.nome || '—'}</td>
+                        <td><span class="tag-badge">${d.catNome}</span></td>
+                        <td><span class="status-badge ${statusData.class}">${statusData.text}</span></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button class="btn-action-modern qr-trigger" onclick="abrirQrCode(${d.id})" title="QR Code"><i class="bi bi-qr-code"></i></button>
+                                <button class="btn-action-modern history-trigger" onclick="abrirHistorico(${d.id})" title="Histórico de Tickets"><i class="bi bi-clock-history"></i></button>
+                                <button class="btn-action-modern edit-trigger" onclick="abrirEdicao(${d.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                                <button class="btn-action-modern delete-trigger" onclick="excluir(${d.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="col-12 mb-4">
+                    <div class="table-card">
+                        <div class="table-card-header d-flex align-items-center justify-content-between py-3 px-4" style="background: #fafafa; border-bottom: 1px solid var(--border);">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-door-open text-primary fs-5"></i>
+                                <span class="fw-bold text-primary" style="font-size: 0.95rem;">${salaNome}</span>
+                                <span class="text-muted small">— ${andarText}</span>
+                            </div>
+                            <span class="count-badge">${g.dispositivos.length} ${g.dispositivos.length === 1 ? 'dispositivo' : 'dispositivos'}</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 80px;">ID</th>
+                                        <th style="width: 35%;">Modelo</th>
+                                        <th style="width: 25%;">Categoria</th>
+                                        <th style="width: 25%;">Status</th>
+                                        <th style="width: 120px;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
     async function carregar() {
@@ -139,6 +480,7 @@
         modelos      = await resModelos.json();
         categorias   = await resCat.json();
         entidades    = await resEnt.json();
+        todasEntidades = Array.isArray(entidades) ? entidades : entidades.results || [];
 
         const salaArr    = Array.isArray(salas)      ? salas      : salas.results || [];
         const modeloArr  = Array.isArray(modelos)    ? modelos    : modelos.results || [];
@@ -151,52 +493,122 @@
         const catMap    = Object.fromEntries(catArr.map(c => [c.id, c.nome]));
         const entMap    = Object.fromEntries(entArr.map(e => [e.id, e.nome]));
 
-        dispRows = dispArr.map(d => {
+        const selectedEntId = localStorage.getItem('selected_entidade_id');
+        const dispArrFiltrados = dispArr.filter(d => {
+            const sala = salaMap[d.sala] || {};
+            return selectedEntId === 'todas' || sala.entidade == selectedEntId;
+        });
+
+        dispRows = dispArrFiltrados.map(d => {
             const sala    = salaMap[d.sala] || {};
             const modelo  = modeloMap[d.modelo] || {};
             const catNome = catMap[modelo.categoria] || '—';
             const entNome = entMap[sala.entidade] || '—';
-            const html = `<tr>
-                <td class="text-muted fw-medium">#${d.id}</td>
-                <td class="fw-medium">${modelo.nome || '—'}</td>
-                <td><span class="tag-badge">${catNome}</span></td>
-                <td>${sala.nome || '—'}</td>
-                <td>${sala.andar || '—'}</td>
-                <td>${entNome}</td>
-                <td>
-                    <div class="d-flex gap-1 justify-content-end">
-                        <button class="btn-action" onclick="abrirEdicao(${d.id})" title="Editar"><i class="bi bi-pencil"></i></button>
-                        <button class="btn-action btn-action-danger" onclick="excluir(${d.id})" title="Excluir"><i class="bi bi-trash"></i></button>
-                    </div>
-                </td>
-            </tr>`;
-            return { id: d.id, termo: `${modelo.nome || ''} ${catNome} ${sala.nome || ''} ${entNome}`.toLowerCase(), html };
+            return {
+                id: d.id,
+                sala: sala,
+                modelo: modelo,
+                catNome: catNome,
+                entNome: entNome,
+                termo: `${modelo.nome || ''} ${catNome} ${sala.nome || ''} ${entNome}`.toLowerCase()
+            };
         });
 
-        renderRows(dispRows);
+        // Reset room filter
+        setSelectValue('filtro', 'sala', '', 'Todas as salas');
 
-        ['f-sala', 'e-sala'].forEach(selId => {
-            const sel = document.getElementById(selId);
-            sel.innerHTML = '<option value="">Selecione uma sala</option>';
-            salaArr.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.nome} — Andar ${s.andar}</option>`; });
+        const salasFiltradas = selectedEntId === 'todas' ? salaArr : salaArr.filter(s => s.entidade == selectedEntId);
+
+        // Populate room filter
+        const filtroSalaMenu = document.getElementById('filtro-sala-menu');
+        if (filtroSalaMenu) {
+            let html = `<li>
+                <button class="entity-dropdown-item active" type="button" data-id="" onclick="setSelectValue('filtro', 'sala', '', 'Todas as salas')">
+                    <span>Todas as salas</span>
+                </button>
+            </li>`;
+            if (salasFiltradas.length > 0) {
+                html += `<li><hr class="dropdown-divider my-1"></li>`;
+            }
+            salasFiltradas.forEach(s => {
+                html += `<li>
+                    <button class="entity-dropdown-item" type="button" data-id="${s.id}" onclick="setSelectValue('filtro', 'sala', ${s.id}, '${s.nome.replace(/'/g, "\\'")}')">
+                        <span>${s.nome}</span>
+                    </button>
+                </li>`;
+            });
+            filtroSalaMenu.innerHTML = html;
+        }
+        
+        ['f-sala', 'e-sala'].forEach(prefix => {
+            const menu = document.getElementById(`${prefix}-menu`);
+            if (menu) {
+                menu.innerHTML = salasFiltradas.map(s => `
+                    <li>
+                        <button class="entity-dropdown-item" type="button" data-id="${s.id}" onclick="setSelectValue('${prefix.split('-')[0]}', 'sala', ${s.id}, '${s.nome} — Andar ${s.andar}')">
+                            <span>${s.nome} — Andar ${s.andar}</span>
+                        </button>
+                    </li>
+                `).join('');
+            }
         });
 
-        ['f-modelo', 'e-modelo'].forEach(selId => {
-            const sel = document.getElementById(selId);
-            sel.innerHTML = '<option value="">Selecione um modelo</option>';
-            modeloArr.forEach(m => { sel.innerHTML += `<option value="${m.id}">${m.nome}</option>`; });
+        const modelosPorCategoria = {};
+        catArr.forEach(c => {
+            modelosPorCategoria[c.id] = { nome: c.nome, modelos: [] };
+        });
+        const semCatKey = 'sem-categoria';
+        modelosPorCategoria[semCatKey] = { nome: 'Sem Categoria', modelos: [] };
+
+        modeloArr.forEach(m => {
+            const catId = m.categoria || semCatKey;
+            if (!modelosPorCategoria[catId]) {
+                modelosPorCategoria[catId] = { nome: `Categoria #${catId}`, modelos: [] };
+            }
+            modelosPorCategoria[catId].modelos.push(m);
+        });
+
+        ['f-modelo', 'e-modelo'].forEach(prefix => {
+            const menu = document.getElementById(`${prefix}-menu`);
+            if (menu) {
+                const p = prefix.split('-')[0];
+                let html = [];
+                const keys = Object.keys(modelosPorCategoria).filter(k => modelosPorCategoria[k].modelos.length > 0);
+                
+                keys.forEach((key, index) => {
+                    const group = modelosPorCategoria[key];
+                    html.push(`<li><h6 class="dropdown-header text-muted fw-bold pb-1 pt-2" style="font-size: 0.7rem; letter-spacing: 0.5px; text-transform: uppercase;">${group.nome}</h6></li>`);
+                    group.modelos.forEach(m => {
+                        html.push(`
+                            <li>
+                                <button class="entity-dropdown-item ps-4" type="button" data-id="${m.id}" onclick="setSelectValue('${p}', 'modelo', ${m.id}, '${m.nome.replace(/'/g, "\\'")}')">
+                                    <span>${m.nome}</span>
+                                </button>
+                            </li>
+                        `);
+                    });
+                    if (index < keys.length - 1) {
+                        html.push(`<li><hr class="dropdown-divider my-1"></li>`);
+                    }
+                });
+                menu.innerHTML = html.join('');
+            }
         });
     }
 
     async function criar() {
         const sala   = document.getElementById('f-sala').value;
         const modelo = document.getElementById('f-modelo').value;
+        const status = document.getElementById('f-status').value;
         if (!sala || !modelo) { toast('Selecione sala e modelo.', 'warn'); return; }
         const res = await authFetch(`${API}/dispositivos/`, {
             method: 'POST',
             body: JSON.stringify({ sala: parseInt(sala), modelo: parseInt(modelo) }),
         });
         if (res.ok) {
+            const data = await res.json();
+            setStatusInfo(data.id, status);
+            selecionarStatus('f', 'ativo');
             bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
             await carregar();
             toast('Dispositivo cadastrado!', 'success');
@@ -205,13 +617,66 @@
         }
     }
 
+    function abrirQrCode(id) {
+        const d = dispRows.find(x => x.id === id);
+        if (!d) return;
+
+        document.getElementById('qr-info-id').textContent = d.id;
+        document.getElementById('qr-info-modelo').textContent = d.modelo.nome || '—';
+        document.getElementById('qr-info-categoria').textContent = d.catNome || '—';
+        document.getElementById('qr-info-sala').textContent = d.sala.nome || '—';
+        document.getElementById('qr-info-entidade').textContent = d.entNome || '—';
+
+        const labelText = `ReporTI - ID: ${d.id}\nModelo: ${d.modelo.nome || '—'}\nCategoria: ${d.catNome || '—'}\nSala: ${d.sala.nome || '—'}\nEntidade: ${d.entNome || '—'}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(labelText)}`;
+        
+        document.getElementById('qr-image').src = qrUrl;
+
+        // Configurar o clique no botão de download do QR Code
+        document.getElementById('btn-download-qr').onclick = async () => {
+            const btn = document.getElementById('btn-download-qr');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Baixando...';
+            try {
+                const res = await fetch(qrUrl);
+                const blob = await res.blob();
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `qrcode-dispositivo-${d.id}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                console.error(err);
+                toast('Erro ao baixar o QR Code.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-download me-2"></i>Baixar QR Code';
+            }
+        };
+
+        new bootstrap.Modal(document.getElementById('modal-qrcode')).show();
+    }
+
     function abrirEdicao(id) {
         const dispArr = Array.isArray(dispositivos) ? dispositivos : dispositivos.results || [];
         const d = dispArr.find(x => x.id === id);
         if (!d) return;
         document.getElementById('e-id').value = d.id;
-        document.getElementById('e-sala').value   = d.sala || '';
-        document.getElementById('e-modelo').value = d.modelo || '';
+        
+        const salaArr = Array.isArray(salas) ? salas : salas.results || [];
+        const modeloArr = Array.isArray(modelos) ? modelos : modelos.results || [];
+        
+        const s = salaArr.find(x => x.id == d.sala) || {};
+        const m = modeloArr.find(x => x.id == d.modelo) || {};
+        
+        setSelectValue('e', 'sala', d.sala || '', s.nome ? `${s.nome} — Andar ${s.andar}` : 'Selecione uma sala');
+        setSelectValue('e', 'modelo', d.modelo || '', m.nome || 'Selecione um modelo');
+        
+        const statuses = JSON.parse(localStorage.getItem('dispositivo_statuses') || '{}');
+        const currentStatus = statuses[id] || 'ativo';
+        selecionarStatus('e', currentStatus);
+
         new bootstrap.Modal(document.getElementById('modal-editar')).show();
     }
 
@@ -219,12 +684,14 @@
         const id    = document.getElementById('e-id').value;
         const sala  = document.getElementById('e-sala').value;
         const modelo = document.getElementById('e-modelo').value;
+        const status = document.getElementById('e-status').value;
         if (!sala || !modelo) { toast('Selecione sala e modelo.', 'warn'); return; }
         const res = await authFetch(`${API}/dispositivos/${id}/`, {
             method: 'PATCH',
             body: JSON.stringify({ sala: parseInt(sala), modelo: parseInt(modelo) }),
         });
         if (res.ok) {
+            setStatusInfo(id, status);
             bootstrap.Modal.getInstance(document.getElementById('modal-editar')).hide();
             await carregar();
             toast('Dispositivo atualizado.', 'success');
@@ -233,13 +700,59 @@
         }
     }
 
-    async function excluir(id) {
-        if (!confirm('Excluir este dispositivo?')) return;
-        await authFetch(`${API}/dispositivos/${id}/`, { method: 'DELETE' });
-        await carregar();
-        toast('Dispositivo excluído.', 'default');
+    function excluir(id) {
+        const d = dispRows.find(x => x.id === id);
+        if (!d) return;
+
+        document.getElementById('excluir-disp-id').value = d.id;
+        document.getElementById('excluir-disp-nome').textContent = `${d.modelo.nome || 'Dispositivo'} (#${d.id})`;
+
+        new bootstrap.Modal(document.getElementById('modal-excluir')).show();
     }
 
-    document.addEventListener('DOMContentLoaded', carregar);
+    async function confirmarExclusao() {
+        const id = document.getElementById('excluir-disp-id').value;
+        const btn = document.getElementById('btn-confirmar-excluir');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Excluindo...';
+
+        try {
+            const res = await authFetch(`${API}/dispositivos/${id}/`, { method: 'DELETE' });
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('modal-excluir')).hide();
+                // Limpar status do localstorage
+                const statuses = JSON.parse(localStorage.getItem('dispositivo_statuses') || '{}');
+                delete statuses[id];
+                localStorage.setItem('dispositivo_statuses', JSON.stringify(statuses));
+                await carregar();
+                toast('Dispositivo excluído com sucesso.', 'default');
+            } else {
+                toast('Erro ao excluir dispositivo.', 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            toast('Erro ao conectar com o servidor.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Excluir';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        carregar();
+        const modalNovo = document.getElementById('modal-novo');
+        if (modalNovo) {
+            modalNovo.addEventListener('show.bs.modal', () => {
+                const selectedEntId = localStorage.getItem('selected_entidade_id');
+                const ent = todasEntidades.find(x => x.id == selectedEntId) || {};
+                const titleEl = document.getElementById('modal-novo-title');
+                if (titleEl) {
+                    titleEl.innerHTML = `<i class="bi bi-pc-display"></i> <span>Novo Dispositivo em ${ent.nome || ''}</span>`;
+                }
+                setSelectValue('f', 'sala', '', 'Selecione uma sala');
+                setSelectValue('f', 'modelo', '', 'Selecione um modelo');
+            });
+        }
+    });
 </script>
 {% endblock %}

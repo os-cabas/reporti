@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}ReporTi{% endblock %}</title>
+    <title>{% block title %}ReporTI{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
     <div class="sidebar-top">
         <a href="/" class="brand">
             <span class="brand-icon"><i class="bi bi-ticket-fill"></i></span>
-            ReporTi
+            ReporTI
         </a>
     </div>
 
@@ -67,7 +67,19 @@
 
 <div class="main-wrapper">
     <header class="page-header">
-        <h5>{% block page_title %}{% endblock %}</h5>
+        <div class="d-flex align-items-center gap-3">
+            <h5 class="m-0">{% block page_title %}{% endblock %}</h5>
+            
+            <div class="dropdown" id="header-entity-dropdown-wrap" style="display: none;">
+                <button class="entity-dropdown-btn dropdown-toggle" type="button" id="header-entity-dropdown-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-building text-primary"></i>
+                    <span id="header-entity-name">Selecionar Entidade</span>
+                </button>
+                <ul class="dropdown-menu entity-dropdown-menu" id="header-entity-dropdown-menu" aria-labelledby="header-entity-dropdown-btn">
+                    <!-- Renderizado dinamicamente -->
+                </ul>
+            </div>
+        </div>
         <div class="page-header-user">
             <div class="user-avatar" id="user-avatar">—</div>
             <span id="current-user"></span>
@@ -119,14 +131,114 @@
         }, duration);
     }
 
+    async function checkEntityContext() {
+        const path = window.location.pathname;
+        const needsEntity = path.includes('/dispositivos/') || path.includes('/salas/') || path.includes('/tickets/') || path === '/' || path.includes('/dashboard/');
+        
+        const dropdownWrap = document.getElementById('header-entity-dropdown-wrap');
+        if (!needsEntity) {
+            dropdownWrap.style.display = 'none';
+            return;
+        }
+
+        dropdownWrap.style.display = 'block';
+
+        try {
+            const res = await authFetch(`${API}/entidades/`);
+            if (res.ok) {
+                const data = await res.json();
+                const list = Array.isArray(data) ? data : data.results || [];
+                const menu = document.getElementById('header-entity-dropdown-menu');
+                
+                if (list.length === 0) {
+                    menu.innerHTML = '<li><span class="dropdown-item text-muted small">Nenhuma entidade cadastrada</span></li>';
+                    return;
+                }
+
+                const currentId = localStorage.getItem('selected_entidade_id') || 'todas';
+
+                let menuHtml = `
+                    <li>
+                        <button class="entity-dropdown-item ${currentId === 'todas' ? 'active' : ''}" type="button" onclick="selectEntity('todas', 'Geral')">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-globe text-primary"></i>
+                                <span>Geral</span>
+                            </div>
+                            ${currentId === 'todas' ? '<i class="bi bi-check2 text-primary fs-6"></i>' : ''}
+                        </button>
+                    </li>
+                `;
+
+                if (list.length > 0) {
+                    menuHtml += `<li><hr class="dropdown-divider my-1"></li>`;
+                    menuHtml += list.map(ent => {
+                        const isActive = ent.id == currentId;
+                        return `
+                            <li>
+                                <button class="entity-dropdown-item ${isActive ? 'active' : ''}" type="button" onclick="selectEntity(${ent.id}, '${ent.nome.replace(/'/g, "\\'")}')">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-building"></i>
+                                        <span>${ent.nome}</span>
+                                    </div>
+                                    ${isActive ? '<i class="bi bi-check2 text-primary fs-6"></i>' : ''}
+                                </button>
+                            </li>
+                        `;
+                    }).join('');
+                }
+                menu.innerHTML = menuHtml;
+
+                const found = list.find(x => x.id == currentId);
+                
+                if (currentId === 'todas') {
+                    document.getElementById('header-entity-name').textContent = 'Geral';
+                    localStorage.setItem('selected_entidade_id', 'todas');
+                    localStorage.setItem('selected_entidade_nome', 'Geral');
+                } else if (found) {
+                    document.getElementById('header-entity-name').textContent = found.nome;
+                } else {
+                    selectEntity('todas', 'Geral');
+                }
+            }
+        } catch (e) {
+            console.error("Erro ao carregar entidades para o dropdown:", e);
+        }
+    }
+
+    function selectEntity(id, nome) {
+        localStorage.setItem('selected_entidade_id', id);
+        localStorage.setItem('selected_entidade_nome', nome);
+        document.getElementById('header-entity-name').textContent = nome;
+        
+        checkEntityContext();
+        
+        if (typeof carregar === 'function') {
+            carregar();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         if (!getToken()) { window.location.href = '/login/'; return; }
         const username = localStorage.getItem('username') || '';
+        const fullname = localStorage.getItem('user_fullname') || username;
         if (username) {
-            document.getElementById('current-user').textContent = username;
-            const initials = username.slice(0, 2).toUpperCase();
+            document.getElementById('current-user').textContent = fullname;
+            
+            // Computa as iniciais a partir do nome
+            let initials = '';
+            if (fullname) {
+                const parts = fullname.trim().split(/\s+/);
+                if (parts.length > 1) {
+                    initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                } else if (parts.length > 0 && parts[0]) {
+                    initials = parts[0].slice(0, 2).toUpperCase();
+                }
+            }
+            if (!initials) initials = username.slice(0, 2).toUpperCase();
+            
             document.getElementById('user-avatar').textContent = initials;
         }
+        checkEntityContext();
     });
 </script>
 {% block scripts %}{% endblock %}
