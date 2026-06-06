@@ -8,10 +8,11 @@
 <div class="toolbar">
     <div class="toolbar-left">
         <div class="btn-group filter-group" role="group">
-            <button class="btn btn-outline-secondary active" onclick="filtrar('')" id="f-todos">Todos</button>
-            <button class="btn btn-outline-secondary" onclick="filtrar('aberto')" id="f-aberto">Abertos</button>
-            <button class="btn btn-outline-secondary" onclick="filtrar('em_andamento')" id="f-andamento">Em andamento</button>
-            <button class="btn btn-outline-secondary" onclick="filtrar('fechado')" id="f-fechado">Fechados</button>
+            <button class="btn btn-outline-secondary active" onclick="filtrar('')"            id="f-todos">Todos</button>
+            <button class="btn btn-outline-secondary" onclick="filtrar('aberto')"             id="f-aberto">Aberto</button>
+            <button class="btn btn-outline-secondary" onclick="filtrar('assumido')"           id="f-assumido">Assumido</button>
+            <button class="btn btn-outline-secondary" onclick="filtrar('em_andamento')"       id="f-andamento">Em andamento</button>
+            <button class="btn btn-outline-secondary" onclick="filtrar('resolvido,encerrado')" id="f-concluido">Concluído</button>
         </div>
         <div class="search-wrap">
             <i class="bi bi-search"></i>
@@ -32,18 +33,19 @@
                 <th>#</th>
                 <th>Título</th>
                 <th>Status</th>
+                <th>Técnico</th>
                 <th>Dispositivo</th>
                 <th>Criado em</th>
                 <th></th>
             </tr>
         </thead>
         <tbody id="tickets-body">
-            <tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>
+            <tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>
         </tbody>
     </table>
 </div>
 
-<!-- Modal novo ticket -->
+<!-- Modal: Novo Ticket -->
 <div class="modal fade" id="modal-novo" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -75,7 +77,7 @@
     </div>
 </div>
 
-<!-- Modal editar ticket -->
+<!-- Modal: Editar Ticket -->
 <div class="modal fade" id="modal-editar" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -94,14 +96,6 @@
                     <textarea id="e-descricao" class="form-control form-control-sm" rows="3"></textarea>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Status</label>
-                    <select id="e-status" class="form-select form-select-sm">
-                        <option value="aberto">Aberto</option>
-                        <option value="em_andamento">Em andamento</option>
-                        <option value="fechado">Fechado</option>
-                    </select>
-                </div>
-                <div class="mb-3">
                     <label class="form-label">Dispositivo</label>
                     <select id="e-dispositivo" class="form-select form-select-sm">
                         <option value="">— Nenhum —</option>
@@ -115,41 +109,101 @@
         </div>
     </div>
 </div>
+
+<!-- Modal: Ação (resolver / encerrar) -->
+<div class="modal fade" id="modal-acao" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="acao-titulo">Confirmar ação</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="acao-id">
+                <input type="hidden" id="acao-tipo">
+                <div class="mb-2">
+                    <label class="form-label">Observação</label>
+                    <textarea id="acao-descricao" class="form-control form-control-sm" rows="3" placeholder="Descreva o que foi feito…"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" id="acao-confirmar" onclick="confirmarAcao()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Histórico -->
+<div class="modal fade" id="modal-historico" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Histórico do Ticket</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="historico-lista" style="max-height:420px;overflow-y:auto;padding:1rem;">
+                    <p class="text-muted text-center py-3">Carregando…</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    let todosTickets = [];
+    let todosTickets  = [];
     let dispositivoMap = {};
-    let filtroAtual = '';
-    let termoBusca = '';
+    let tecnicoMap    = {};
+    let filtroAtual   = '';
+    let termoBusca    = '';
+
+    const STATUS_INFO = {
+        aberto:       { label: 'Aberto',       cls: 'badge-aberto' },
+        assumido:     { label: 'Assumido',      cls: 'badge-assumido' },
+        em_andamento: { label: 'Em andamento',  cls: 'badge-em_andamento' },
+        resolvido:    { label: 'Resolvido',     cls: 'badge-resolvido' },
+        encerrado:    { label: 'Encerrado',     cls: 'badge-encerrado' },
+    };
 
     function statusBadge(s) {
-        const map = { aberto: 'Aberto', em_andamento: 'Em andamento', fechado: 'Fechado' };
-        return `<span class="status-badge badge-${s}">${map[s] || s}</span>`;
+        const { label, cls } = STATUS_INFO[s] || { label: s, cls: '' };
+        return `<span class="status-badge ${cls}">${label}</span>`;
     }
 
     function renderTabela(lista) {
         const tbody = document.getElementById('tickets-body');
         if (!lista.length) {
-            tbody.innerHTML = `<tr><td colspan="6">
+            tbody.innerHTML = `<tr><td colspan="7">
                 <div class="empty-state">
                     <i class="bi bi-ticket empty-state-icon"></i>
                     <p class="empty-state-title">Nenhum ticket encontrado</p>
-                    <p class="empty-state-sub">Tente mudar os filtros ou crie um novo ticket.</p>
+                    <p class="empty-state-sub">Tente mudar os filtros ou abra um novo ticket.</p>
                 </div>
             </td></tr>`;
             return;
         }
         tbody.innerHTML = lista.map(t => {
-            const dispNome = t.dispositivo ? (dispositivoMap[t.dispositivo] || `#${t.dispositivo}`) : '—';
+            const dispNome   = t.dispositivo ? (dispositivoMap[t.dispositivo] || `#${t.dispositivo}`) : '—';
+            const tecnicoNome = t.tecnico ? (tecnicoMap[t.tecnico] || `#${t.tecnico}`) : '—';
             const acoes = [];
+
             if (t.status === 'aberto')
-                acoes.push(`<button class="btn-action btn-action-warn" onclick="mudarStatus(${t.id},'em_andamento')" title="Atender"><i class="bi bi-play-fill"></i></button>`);
-            if (t.status === 'em_andamento')
-                acoes.push(`<button class="btn-action btn-action-success" onclick="mudarStatus(${t.id},'fechado')" title="Fechar"><i class="bi bi-check-lg"></i></button>`);
-            acoes.push(`<button class="btn-action" onclick="abrirEdicao(${t.id})" title="Editar"><i class="bi bi-pencil"></i></button>`);
-            acoes.push(`<button class="btn-action btn-action-danger" onclick="excluir(${t.id})" title="Excluir"><i class="bi bi-trash"></i></button>`);
+                acoes.push(`<button class="btn-action btn-action-warn" onclick="assumir(${t.id})" title="Assumir"><i class="bi bi-person-check"></i></button>`);
+            if (t.status === 'assumido' || t.status === 'em_andamento')
+                acoes.push(`<button class="btn-action btn-action-success" onclick="abrirAcao(${t.id},'resolver')" title="Resolver"><i class="bi bi-check-lg"></i></button>`);
+            if (t.status === 'resolvido')
+                acoes.push(`<button class="btn-action" onclick="abrirAcao(${t.id},'encerrar')" title="Encerrar" style="background:#f5f3ff;color:#7c3aed;"><i class="bi bi-lock"></i></button>`);
+
+            acoes.push(`<button class="btn-action" onclick="verHistorico(${t.id})" title="Histórico"><i class="bi bi-clock-history"></i></button>`);
+
+            if (t.status !== 'encerrado') {
+                acoes.push(`<button class="btn-action" onclick="abrirEdicao(${t.id})" title="Editar"><i class="bi bi-pencil"></i></button>`);
+                acoes.push(`<button class="btn-action btn-action-danger" onclick="excluir(${t.id})" title="Excluir"><i class="bi bi-trash"></i></button>`);
+            }
+
             return `<tr>
                 <td class="text-muted fw-medium">#${t.id}</td>
                 <td>
@@ -157,11 +211,10 @@
                     ${t.descricao ? `<br><small class="text-muted" style="font-size:.75rem;">${t.descricao.length > 60 ? t.descricao.slice(0,60)+'…' : t.descricao}</small>` : ''}
                 </td>
                 <td>${statusBadge(t.status)}</td>
+                <td class="text-muted">${tecnicoNome !== '—' ? `<span class="tag-badge"><i class="bi bi-person" style="font-size:.7rem;"></i>${tecnicoNome}</span>` : '<span class="text-muted">—</span>'}</td>
                 <td>${dispNome !== '—' ? `<span class="tag-badge"><i class="bi bi-pc-display" style="font-size:.7rem;"></i>${dispNome}</span>` : '<span class="text-muted">—</span>'}</td>
                 <td class="text-muted">${new Date(t.criado_em).toLocaleDateString('pt-BR')}</td>
-                <td>
-                    <div class="d-flex gap-1 justify-content-end">${acoes.join('')}</div>
-                </td>
+                <td><div class="d-flex gap-1 justify-content-end">${acoes.join('')}</div></td>
             </tr>`;
         }).join('');
     }
@@ -172,117 +225,196 @@
     }
 
     function aplicarFiltros() {
-        let lista = filtroAtual ? todosTickets.filter(t => t.status === filtroAtual) : todosTickets;
-        if (termoBusca) lista = lista.filter(t => t.titulo.toLowerCase().includes(termoBusca) || (t.descricao || '').toLowerCase().includes(termoBusca));
+        let lista = todosTickets;
+        if (filtroAtual) {
+            const valores = filtroAtual.split(',');
+            lista = lista.filter(t => valores.includes(t.status));
+        }
+        if (termoBusca) {
+            lista = lista.filter(t =>
+                t.titulo.toLowerCase().includes(termoBusca) ||
+                (t.descricao || '').toLowerCase().includes(termoBusca)
+            );
+        }
         renderTabela(lista);
     }
 
     function filtrar(status) {
         filtroAtual = status;
         document.querySelectorAll('.filter-group .btn').forEach(b => b.classList.remove('active'));
-        const ids = { '': 'f-todos', 'aberto': 'f-aberto', 'em_andamento': 'f-andamento', 'fechado': 'f-fechado' };
-        document.getElementById(ids[status])?.classList.add('active');
+        const ids = { '': 'f-todos', 'aberto': 'f-aberto', 'assumido': 'f-assumido', 'em_andamento': 'f-andamento', 'resolvido,encerrado': 'f-concluido' };
+        document.getElementById(ids[status] || 'f-todos')?.classList.add('active');
         aplicarFiltros();
     }
 
-    async function carregarDispositivos() {
-        const res = await authFetch(`${API}/dispositivos/`);
-        const data = await res.json();
-        const lista = Array.isArray(data) ? data : (data.results || []);
+    async function carregar() {
+        const [resDisp, resMod, resTec, resTickets] = await Promise.all([
+            authFetch(`${API}/dispositivos/`).then(r => r.json()),
+            authFetch(`${API}/modelos/`).then(r => r.json()),
+            authFetch(`${API}/usuarios/`).then(r => r.json()),
+            authFetch(`${API}/tickets/`).then(r => r.json()),
+        ]);
 
-        const resModelos = await authFetch(`${API}/modelos/`);
-        const modData = await resModelos.json();
-        const modeloMap = Object.fromEntries((Array.isArray(modData) ? modData : modData.results || []).map(m => [m.id, m.nome]));
+        const dispArr = Array.isArray(resDisp) ? resDisp : (resDisp.results || []);
+        const modArr  = Array.isArray(resMod)  ? resMod  : (resMod.results  || []);
+        const tecArr  = Array.isArray(resTec)  ? resTec  : (resTec.results  || []);
 
-        lista.forEach(d => {
+        const modeloMap = Object.fromEntries(modArr.map(m => [m.id, m.nome]));
+        dispArr.forEach(d => {
             dispositivoMap[d.id] = modeloMap[d.modelo] ? `${modeloMap[d.modelo]} #${d.id}` : `Dispositivo #${d.id}`;
         });
+        tecArr.filter(u => ['tecnico','admin_entidade','admin_geral'].includes(u.perfil)).forEach(u => {
+            tecnicoMap[u.id] = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : u.email;
+        });
 
+        // Popula selects de dispositivos
         ['f-dispositivo', 'e-dispositivo'].forEach(selId => {
             const sel = document.getElementById(selId);
             sel.innerHTML = '<option value="">— Nenhum —</option>';
-            lista.forEach(d => { sel.innerHTML += `<option value="${d.id}">${dispositivoMap[d.id]}</option>`; });
+            dispArr.forEach(d => { sel.innerHTML += `<option value="${d.id}">${dispositivoMap[d.id]}</option>`; });
         });
-    }
 
-    async function carregarTickets() {
-        const res = await authFetch(`${API}/tickets/`);
-        const data = await res.json();
-        todosTickets = Array.isArray(data) ? data : (data.results || []);
+        todosTickets = Array.isArray(resTickets) ? resTickets : (resTickets.results || []);
         aplicarFiltros();
     }
 
+    // ── Criar ──────────────────────────────────────────────────────────────────
     async function criarTicket() {
         const titulo = document.getElementById('f-titulo').value.trim();
         if (!titulo) { toast('Informe o título do ticket.', 'warn'); return; }
-        const body = {
-            titulo,
-            descricao: document.getElementById('f-descricao').value,
-            status: 'aberto',
-            usuario: null,
-            dispositivo: document.getElementById('f-dispositivo').value || null,
-        };
-        const res = await authFetch(`${API}/tickets/`, { method: 'POST', body: JSON.stringify(body) });
+        const res = await authFetch(`${API}/tickets/`, {
+            method: 'POST',
+            body: JSON.stringify({
+                titulo,
+                descricao:   document.getElementById('f-descricao').value,
+                dispositivo: document.getElementById('f-dispositivo').value || null,
+            }),
+        });
         if (res.ok) {
             bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
-            document.getElementById('f-titulo').value = '';
-            document.getElementById('f-descricao').value = '';
+            ['f-titulo','f-descricao'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('f-dispositivo').value = '';
-            await carregarTickets();
-            toast('Ticket criado com sucesso!', 'success');
+            await carregar();
+            toast('Ticket criado!', 'success');
         } else {
-            toast('Erro ao criar ticket. Tente novamente.', 'error');
+            const err = await res.json().catch(() => ({}));
+            toast(Object.values(err).flat()[0] || 'Erro ao criar ticket.', 'error');
         }
     }
 
+    // ── Editar ─────────────────────────────────────────────────────────────────
     function abrirEdicao(id) {
         const t = todosTickets.find(x => x.id === id);
         if (!t) return;
-        document.getElementById('e-id').value = t.id;
-        document.getElementById('e-titulo').value = t.titulo;
-        document.getElementById('e-descricao').value = t.descricao || '';
-        document.getElementById('e-status').value = t.status;
+        document.getElementById('e-id').value          = t.id;
+        document.getElementById('e-titulo').value      = t.titulo;
+        document.getElementById('e-descricao').value   = t.descricao || '';
         document.getElementById('e-dispositivo').value = t.dispositivo || '';
         new bootstrap.Modal(document.getElementById('modal-editar')).show();
     }
 
     async function salvarEdicao() {
-        const id = document.getElementById('e-id').value;
+        const id    = document.getElementById('e-id').value;
         const titulo = document.getElementById('e-titulo').value.trim();
-        if (!titulo) { toast('Informe o título do ticket.', 'warn'); return; }
-        const body = {
-            titulo,
-            descricao: document.getElementById('e-descricao').value,
-            status: document.getElementById('e-status').value,
-            dispositivo: document.getElementById('e-dispositivo').value || null,
-        };
-        const res = await authFetch(`${API}/tickets/${id}/`, { method: 'PATCH', body: JSON.stringify(body) });
+        if (!titulo) { toast('Informe o título.', 'warn'); return; }
+        const res = await authFetch(`${API}/tickets/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                titulo,
+                descricao:   document.getElementById('e-descricao').value,
+                dispositivo: document.getElementById('e-dispositivo').value || null,
+            }),
+        });
         if (res.ok) {
             bootstrap.Modal.getInstance(document.getElementById('modal-editar')).hide();
-            await carregarTickets();
+            await carregar();
             toast('Ticket atualizado.', 'success');
         } else {
-            toast('Erro ao salvar alterações.', 'error');
+            toast('Erro ao salvar.', 'error');
         }
     }
 
-    async function mudarStatus(id, status) {
-        await authFetch(`${API}/tickets/${id}/`, { method: 'PATCH', body: JSON.stringify({ status }) });
-        await carregarTickets();
-        const labels = { em_andamento: 'Ticket em atendimento.', fechado: 'Ticket fechado.' };
-        toast(labels[status] || 'Status atualizado.', 'success');
+    // ── Ações de status ────────────────────────────────────────────────────────
+    async function assumir(id) {
+        const res = await authFetch(`${API}/tickets/${id}/assumir/`, { method: 'POST', body: '{}' });
+        if (res.ok) { await carregar(); toast('Ticket assumido!', 'success'); }
+        else {
+            const err = await res.json().catch(() => ({}));
+            toast(err.detail || 'Não foi possível assumir.', 'error');
+        }
     }
 
+    function abrirAcao(id, tipo) {
+        const labels = { resolver: 'Resolver Ticket', encerrar: 'Encerrar Ticket' };
+        document.getElementById('acao-id').value        = id;
+        document.getElementById('acao-tipo').value      = tipo;
+        document.getElementById('acao-titulo').textContent = labels[tipo] || tipo;
+        document.getElementById('acao-descricao').value = '';
+        new bootstrap.Modal(document.getElementById('modal-acao')).show();
+    }
+
+    async function confirmarAcao() {
+        const id        = document.getElementById('acao-id').value;
+        const tipo      = document.getElementById('acao-tipo').value;
+        const descricao = document.getElementById('acao-descricao').value.trim();
+        if (!descricao) { toast('Informe uma observação.', 'warn'); return; }
+
+        const res = await authFetch(`${API}/tickets/${id}/${tipo}/`, {
+            method: 'POST',
+            body: JSON.stringify({ descricao }),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-acao')).hide();
+            await carregar();
+            const msgs = { resolver: 'Ticket resolvido!', encerrar: 'Ticket encerrado.' };
+            toast(msgs[tipo] || 'Status atualizado.', 'success');
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast(err.detail || 'Erro ao executar ação.', 'error');
+        }
+    }
+
+    // ── Histórico ──────────────────────────────────────────────────────────────
+    async function verHistorico(id) {
+        document.getElementById('historico-lista').innerHTML = '<p class="text-muted text-center py-3">Carregando…</p>';
+        new bootstrap.Modal(document.getElementById('modal-historico')).show();
+
+        const res  = await authFetch(`${API}/tickets/${id}/historico/`);
+        const data = await res.json();
+        const lista = Array.isArray(data) ? data : (data.results || []);
+
+        if (!lista.length) {
+            document.getElementById('historico-lista').innerHTML = '<p class="text-muted text-center py-3">Nenhum registro encontrado.</p>';
+            return;
+        }
+
+        const acaoLabel = {
+            aberto: 'Aberto', assumido: 'Assumido', em_andamento: 'Em andamento',
+            resolvido: 'Resolvido', encerrado: 'Encerrado',
+        };
+        document.getElementById('historico-lista').innerHTML = lista.map(h => `
+            <div class="d-flex gap-3 mb-3 pb-3 border-bottom">
+                <div class="stat-icon flex-shrink-0" style="width:32px;height:32px;font-size:.875rem;background:#f1f5f9;color:#64748b;">
+                    <i class="bi bi-clock"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <span class="fw-semibold" style="font-size:.875rem;">${acaoLabel[h.acao] || h.acao}</span>
+                        <span class="text-muted" style="font-size:.75rem;">${new Date(h.criado_em).toLocaleString('pt-BR')}</span>
+                    </div>
+                    ${h.descricao ? `<p class="text-muted mb-0 mt-1" style="font-size:.8125rem;">${h.descricao}</p>` : ''}
+                </div>
+            </div>`).join('');
+    }
+
+    // ── Excluir ────────────────────────────────────────────────────────────────
     async function excluir(id) {
         if (!confirm('Excluir este ticket?')) return;
-        await authFetch(`${API}/tickets/${id}/`, { method: 'DELETE' });
-        await carregarTickets();
-        toast('Ticket excluído.', 'default');
+        const res = await authFetch(`${API}/tickets/${id}/`, { method: 'DELETE' });
+        if (res.ok || res.status === 204) { await carregar(); toast('Ticket excluído.', 'default'); }
+        else toast('Não foi possível excluir.', 'error');
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        await carregarDispositivos();
-        await carregarTickets();
-    });
+    document.addEventListener('DOMContentLoaded', carregar);
 </script>
 {% endblock %}

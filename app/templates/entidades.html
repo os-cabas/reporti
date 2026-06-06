@@ -25,28 +25,57 @@
             <tr>
                 <th>#</th>
                 <th>Nome</th>
+                <th>Tipo</th>
+                <th>E-mail responsável</th>
+                <th>Status</th>
                 <th>Salas</th>
                 <th></th>
             </tr>
         </thead>
         <tbody id="entidades-body">
-            <tr><td colspan="4" class="text-center text-muted py-4">Carregando...</td></tr>
+            <tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>
         </tbody>
     </table>
 </div>
 
-<!-- Modal nova entidade -->
+<!-- Modal: Nova Entidade -->
 <div class="modal fade" id="modal-novo" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h6 class="modal-title">Nova Entidade</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Nome <span class="text-danger">*</span></label>
-                    <input type="text" id="f-nome" class="form-control form-control-sm" placeholder="Ex: Campus Central">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Nome <span class="text-danger">*</span></label>
+                        <input type="text" id="f-nome" class="form-control form-control-sm" placeholder="Ex: Campus Central">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                        <select id="f-tipo" class="form-select form-select-sm">
+                            <option value="escola">Escola</option>
+                            <option value="empresa">Empresa</option>
+                            <option value="universidade">Universidade</option>
+                            <option value="outro" selected>Outro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">E-mail do responsável <span class="text-danger">*</span></label>
+                        <input type="email" id="f-email-resp" class="form-control form-control-sm" placeholder="gestor@instituicao.edu.br">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Status</label>
+                        <select id="f-status" class="form-select form-select-sm">
+                            <option value="ativa">Ativa</option>
+                            <option value="inativa">Inativa</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descrição</label>
+                        <textarea id="f-descricao" class="form-control form-control-sm" rows="2" placeholder="Descrição opcional…"></textarea>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -57,9 +86,9 @@
     </div>
 </div>
 
-<!-- Modal editar entidade -->
+<!-- Modal: Editar Entidade -->
 <div class="modal fade" id="modal-editar" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h6 class="modal-title">Editar Entidade</h6>
@@ -67,9 +96,35 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="e-id">
-                <div class="mb-3">
-                    <label class="form-label">Nome <span class="text-danger">*</span></label>
-                    <input type="text" id="e-nome" class="form-control form-control-sm">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Nome <span class="text-danger">*</span></label>
+                        <input type="text" id="e-nome" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                        <select id="e-tipo" class="form-select form-select-sm">
+                            <option value="escola">Escola</option>
+                            <option value="empresa">Empresa</option>
+                            <option value="universidade">Universidade</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">E-mail do responsável <span class="text-danger">*</span></label>
+                        <input type="email" id="e-email-resp" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Status</label>
+                        <select id="e-status" class="form-select form-select-sm">
+                            <option value="ativa">Ativa</option>
+                            <option value="inativa">Inativa</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descrição</label>
+                        <textarea id="e-descricao" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -86,16 +141,17 @@
     let todasEntidades = [];
     let entRows = [];
 
+    const TIPO_LABEL = { escola: 'Escola', empresa: 'Empresa', universidade: 'Universidade', outro: 'Outro' };
+
     function aplicarBusca() {
         const termo = document.getElementById('search-ent').value.toLowerCase();
-        const filtradas = termo ? entRows.filter(r => r.termo.includes(termo)) : entRows;
-        renderRows(filtradas);
+        renderRows(termo ? entRows.filter(r => r.termo.includes(termo)) : entRows);
     }
 
     function renderRows(rows) {
         const tbody = document.getElementById('entidades-body');
         if (!rows.length) {
-            tbody.innerHTML = `<tr><td colspan="4">
+            tbody.innerHTML = `<tr><td colspan="7">
                 <div class="empty-state">
                     <i class="bi bi-building empty-state-icon"></i>
                     <p class="empty-state-title">Nenhuma entidade encontrada</p>
@@ -109,23 +165,27 @@
 
     async function carregar() {
         const [resEnt, resSalas] = await Promise.all([
-            authFetch(`${API}/entidades/`),
-            authFetch(`${API}/salas/`),
+            authFetch(`${API}/entidades/`).then(r => r.json()),
+            authFetch(`${API}/salas/`).then(r => r.json()),
         ]);
-        todasEntidades = await resEnt.json();
-        const salas    = await resSalas.json();
-
-        const salaArr = Array.isArray(salas) ? salas : salas.results || [];
-        const entArr  = Array.isArray(todasEntidades) ? todasEntidades : todasEntidades.results || [];
+        todasEntidades = Array.isArray(resEnt)   ? resEnt   : (resEnt.results   || []);
+        const salaArr  = Array.isArray(resSalas) ? resSalas : (resSalas.results || []);
 
         const salasCount = {};
         salaArr.forEach(s => { salasCount[s.entidade] = (salasCount[s.entidade] || 0) + 1; });
 
-        entRows = entArr.map(e => {
-            const count = salasCount[e.id] || 0;
+        entRows = todasEntidades.map(e => {
+            const count      = salasCount[e.id] || 0;
+            const tipoLabel  = TIPO_LABEL[e.tipo] || e.tipo;
+            const statusBadge = e.status === 'ativa'
+                ? `<span class="status-badge badge-resolvido">Ativa</span>`
+                : `<span class="status-badge badge-encerrado">Inativa</span>`;
             const html = `<tr>
                 <td class="text-muted fw-medium">#${e.id}</td>
                 <td class="fw-medium">${e.nome}</td>
+                <td><span class="tag-badge">${tipoLabel}</span></td>
+                <td class="text-muted" style="font-size:.8125rem;">${e.email_responsavel || '—'}</td>
+                <td>${statusBadge}</td>
                 <td><span class="count-badge">${count} sala${count !== 1 ? 's' : ''}</span></td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
@@ -134,58 +194,80 @@
                     </div>
                 </td>
             </tr>`;
-            return { id: e.id, termo: e.nome.toLowerCase(), html };
+            return { id: e.id, termo: `${e.nome} ${tipoLabel} ${e.email_responsavel || ''}`.toLowerCase(), html };
         });
 
         renderRows(entRows);
     }
 
     async function criar() {
-        const nome = document.getElementById('f-nome').value.trim();
-        if (!nome) { toast('Informe o nome da entidade.', 'warn'); return; }
-        const res = await authFetch(`${API}/entidades/`, { method: 'POST', body: JSON.stringify({ nome }) });
+        const nome      = document.getElementById('f-nome').value.trim();
+        const emailResp = document.getElementById('f-email-resp').value.trim();
+        const tipo      = document.getElementById('f-tipo').value;
+        if (!nome || !emailResp || !tipo) { toast('Nome, tipo e e-mail são obrigatórios.', 'warn'); return; }
+        const res = await authFetch(`${API}/entidades/`, {
+            method: 'POST',
+            body: JSON.stringify({
+                nome,
+                tipo,
+                email_responsavel: emailResp,
+                status:    document.getElementById('f-status').value,
+                descricao: document.getElementById('f-descricao').value.trim(),
+            }),
+        });
         if (res.ok) {
             bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
-            document.getElementById('f-nome').value = '';
+            ['f-nome','f-email-resp','f-descricao'].forEach(id => document.getElementById(id).value = '');
             await carregar();
             toast('Entidade criada!', 'success');
         } else {
-            toast('Erro ao criar entidade.', 'error');
+            const err = await res.json().catch(() => ({}));
+            toast(Object.values(err).flat()[0] || 'Erro ao criar entidade.', 'error');
         }
     }
 
     function abrirEdicao(id) {
-        const entArr = Array.isArray(todasEntidades) ? todasEntidades : todasEntidades.results || [];
-        const e = entArr.find(x => x.id === id);
+        const e = todasEntidades.find(x => x.id === id);
         if (!e) return;
-        document.getElementById('e-id').value   = e.id;
-        document.getElementById('e-nome').value = e.nome;
+        document.getElementById('e-id').value         = e.id;
+        document.getElementById('e-nome').value       = e.nome;
+        document.getElementById('e-tipo').value       = e.tipo || 'outro';
+        document.getElementById('e-email-resp').value = e.email_responsavel || '';
+        document.getElementById('e-status').value     = e.status || 'ativa';
+        document.getElementById('e-descricao').value  = e.descricao || '';
         new bootstrap.Modal(document.getElementById('modal-editar')).show();
     }
 
     async function salvarEdicao() {
-        const id   = document.getElementById('e-id').value;
-        const nome = document.getElementById('e-nome').value.trim();
-        if (!nome) { toast('Informe o nome da entidade.', 'warn'); return; }
-        const res = await authFetch(`${API}/entidades/${id}/`, { method: 'PATCH', body: JSON.stringify({ nome }) });
+        const id        = document.getElementById('e-id').value;
+        const nome      = document.getElementById('e-nome').value.trim();
+        const emailResp = document.getElementById('e-email-resp').value.trim();
+        if (!nome || !emailResp) { toast('Nome e e-mail são obrigatórios.', 'warn'); return; }
+        const res = await authFetch(`${API}/entidades/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                nome,
+                tipo:              document.getElementById('e-tipo').value,
+                email_responsavel: emailResp,
+                status:            document.getElementById('e-status').value,
+                descricao:         document.getElementById('e-descricao').value.trim(),
+            }),
+        });
         if (res.ok) {
             bootstrap.Modal.getInstance(document.getElementById('modal-editar')).hide();
             await carregar();
             toast('Entidade atualizada.', 'success');
         } else {
-            toast('Erro ao salvar alterações.', 'error');
+            const err = await res.json().catch(() => ({}));
+            toast(Object.values(err).flat()[0] || 'Erro ao salvar.', 'error');
         }
     }
 
     async function excluir(id) {
         if (!confirm('Excluir esta entidade? As salas vinculadas serão removidas em cascata.')) return;
         const res = await authFetch(`${API}/entidades/${id}/`, { method: 'DELETE' });
-        if (res.ok || res.status === 204) {
-            await carregar();
-            toast('Entidade excluída.', 'default');
-        } else {
-            toast('Não foi possível excluir. Verifique dependências.', 'error');
-        }
+        if (res.ok || res.status === 204) { await carregar(); toast('Entidade excluída.', 'default'); }
+        else toast('Não foi possível excluir. Verifique dependências.', 'error');
     }
 
     document.addEventListener('DOMContentLoaded', carregar);
