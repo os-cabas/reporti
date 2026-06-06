@@ -21,6 +21,10 @@ class Usuario(AbstractUser):
     )
     email = models.EmailField(unique=True)
 
+    # Login feito por e-mail; username continua existindo mas não é usado para autenticar
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+
     class Meta:
         verbose_name = 'Usuário'
         verbose_name_plural = 'Usuários'

@@ -70,6 +70,7 @@ class Command(BaseCommand):
                 is_staff=True,
                 is_superuser=True,
                 cargo='Administrador',
+                perfil='admin_geral',
             )
             user.set_password(password)
             user.save()

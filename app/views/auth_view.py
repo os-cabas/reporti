@@ -54,6 +54,14 @@ class GoogleAuthView(APIView):
             return Response({'erro': 'Token Google inválido.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         payload = resp.json()
+
+        # Garante que o token foi emitido para esta aplicação (previne token substitution)
+        if payload.get('aud') != settings.GOOGLE_CLIENT_ID:
+            return Response(
+                {'erro': 'Token não pertence a esta aplicação.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
         email = payload.get('email')
         if not email:
             return Response({'erro': 'Token não contém e-mail.'}, status=status.HTTP_400_BAD_REQUEST)
