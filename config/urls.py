@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenBlacklistView
+
+from app.views.auth_view import GoogleAuthView, MagicLinkSolicitarView, MagicLinkVerificarView
+from app.views.dashboard_view import DashboardView
 from app.views.pages_view import (
     LoginPageView, DashboardPageView, TicketsPageView,
     DispositivosPageView, SalasPageView, EntidadesPageView,
@@ -10,14 +13,25 @@ from app.views.pages_view import (
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # Auth JWT
+    # ── Auth JWT ──────────────────────────────────────────────────────────────
     path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/auth/token/blacklist/', TokenBlacklistView.as_view(), name='token_blacklist'),
 
-    # API
+    # ── RF001: Google OAuth ───────────────────────────────────────────────────
+    path('api/auth/google/', GoogleAuthView.as_view(), name='auth_google'),
+
+    # ── RF002: Magic Link ─────────────────────────────────────────────────────
+    path('api/auth/magic-link/', MagicLinkSolicitarView.as_view(), name='magic_link_solicitar'),
+    path('api/auth/magic-link/verificar/', MagicLinkVerificarView.as_view(), name='magic_link_verificar'),
+
+    # ── RF015: Dashboard ──────────────────────────────────────────────────────
+    path('api/dashboard/', DashboardView.as_view(), name='dashboard_api'),
+
+    # ── API REST ──────────────────────────────────────────────────────────────
     path('api/', include('app.urls')),
 
-    # Pages
+    # ── Pages (templates) ─────────────────────────────────────────────────────
     path('login/', LoginPageView.as_view(), name='login'),
     path('tickets/', TicketsPageView.as_view(), name='tickets'),
     path('dispositivos/', DispositivosPageView.as_view(), name='dispositivos'),

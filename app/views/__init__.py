@@ -7,3 +7,6 @@ from .usuario_view import UsuarioViewSet
 from .dispositivo_view import DispositivoViewSet
 from .usuario_permissao_view import UsuarioPermissaoViewSet
 from .ticket_view import TicketViewSet
+from .manutencao_view import ManutencaoViewSet
+from .dashboard_view import DashboardView
+from .auth_view import GoogleAuthView, MagicLinkSolicitarView, MagicLinkVerificarView

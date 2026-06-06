@@ -7,3 +7,7 @@ from .usuario import Usuario
 from .dispositivo import Dispositivo
 from .usuario_permissao import UsuarioPermissao
 from .ticket import Ticket
+from .manutencao import Manutencao
+from .historico_dispositivo import HistoricoDispositivo
+from .historico_ticket import HistoricoTicket
+from .magic_link_token import MagicLinkToken

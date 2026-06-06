@@ -3,6 +3,7 @@ from .views import (
     UsuarioViewSet, PermissaoViewSet, UsuarioPermissaoViewSet,
     EntidadeViewSet, SalaViewSet, CategoriaViewSet,
     ModeloViewSet, DispositivoViewSet, TicketViewSet,
+    ManutencaoViewSet,
 )
 
 router = DefaultRouter()
@@ -15,5 +16,6 @@ router.register('categorias', CategoriaViewSet, basename='categorias')
 router.register('modelos', ModeloViewSet, basename='modelos')
 router.register('dispositivos', DispositivoViewSet, basename='dispositivos')
 router.register('tickets', TicketViewSet, basename='tickets')
+router.register('manutencoes', ManutencaoViewSet, basename='manutencoes')
 
 urlpatterns = router.urls
