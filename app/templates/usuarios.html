@@ -24,11 +24,11 @@
         <thead>
             <tr>
                 <th>#</th>
-                <th>Username</th>
                 <th>Nome</th>
                 <th>E-mail</th>
                 <th>Cargo</th>
                 <th>Perfil</th>
+                <th>Entidade</th>
                 <th></th>
             </tr>
         </thead>
@@ -38,7 +38,7 @@
     </table>
 </div>
 
-<!-- Modal novo usuário -->
+<!-- Modal: Novo Usuário -->
 <div class="modal fade" id="modal-novo" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -49,14 +49,6 @@
             <div class="modal-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Username <span class="text-danger">*</span></label>
-                        <input type="text" id="f-username" class="form-control form-control-sm" placeholder="usuario123">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Senha <span class="text-danger">*</span></label>
-                        <input type="password" id="f-password" class="form-control form-control-sm" placeholder="••••••••">
-                    </div>
-                    <div class="col-md-6">
                         <label class="form-label">Primeiro nome</label>
                         <input type="text" id="f-first-name" class="form-control form-control-sm">
                     </div>
@@ -65,18 +57,31 @@
                         <input type="text" id="f-last-name" class="form-control form-control-sm">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">E-mail</label>
-                        <input type="email" id="f-email" class="form-control form-control-sm">
+                        <label class="form-label">E-mail <span class="text-danger">*</span></label>
+                        <input type="email" id="f-email" class="form-control form-control-sm" placeholder="usuario@email.com">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Senha <span class="text-danger">*</span></label>
+                        <input type="password" id="f-password" class="form-control form-control-sm" placeholder="••••••••">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Cargo</label>
                         <input type="text" id="f-cargo" class="form-control form-control-sm" placeholder="Ex: Técnico de TI">
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Perfil <span class="text-danger">*</span></label>
+                        <select id="f-perfil" class="form-select form-select-sm">
+                            <option value="comum">Usuário Comum</option>
+                            <option value="tecnico">Técnico</option>
+                            <option value="admin_entidade">Admin. da Entidade</option>
+                            <option value="admin_geral">Administrador Geral</option>
+                        </select>
+                    </div>
                     <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="f-is-staff">
-                            <label class="form-check-label small" for="f-is-staff">Staff (acesso administrativo)</label>
-                        </div>
+                        <label class="form-label">Entidade</label>
+                        <select id="f-entidade" class="form-select form-select-sm">
+                            <option value="">— Nenhuma —</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -88,7 +93,7 @@
     </div>
 </div>
 
-<!-- Modal editar usuário -->
+<!-- Modal: Editar Usuário -->
 <div class="modal fade" id="modal-editar" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -100,14 +105,6 @@
                 <input type="hidden" id="e-id">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Username <span class="text-danger">*</span></label>
-                        <input type="text" id="e-username" class="form-control form-control-sm">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Nova senha <span class="text-muted fw-normal">(vazio = manter)</span></label>
-                        <input type="password" id="e-password" class="form-control form-control-sm" placeholder="••••••••">
-                    </div>
-                    <div class="col-md-6">
                         <label class="form-label">Primeiro nome</label>
                         <input type="text" id="e-first-name" class="form-control form-control-sm">
                     </div>
@@ -116,18 +113,31 @@
                         <input type="text" id="e-last-name" class="form-control form-control-sm">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">E-mail</label>
+                        <label class="form-label">E-mail <span class="text-danger">*</span></label>
                         <input type="email" id="e-email" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Nova senha <span class="text-muted fw-normal">(vazio = manter)</span></label>
+                        <input type="password" id="e-password" class="form-control form-control-sm" placeholder="••••••••">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Cargo</label>
                         <input type="text" id="e-cargo" class="form-control form-control-sm">
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Perfil <span class="text-danger">*</span></label>
+                        <select id="e-perfil" class="form-select form-select-sm">
+                            <option value="comum">Usuário Comum</option>
+                            <option value="tecnico">Técnico</option>
+                            <option value="admin_entidade">Admin. da Entidade</option>
+                            <option value="admin_geral">Administrador Geral</option>
+                        </select>
+                    </div>
                     <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="e-is-staff">
-                            <label class="form-check-label small" for="e-is-staff">Staff (acesso administrativo)</label>
-                        </div>
+                        <label class="form-label">Entidade</label>
+                        <select id="e-entidade" class="form-select form-select-sm">
+                            <option value="">— Nenhuma —</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -143,12 +153,24 @@
 {% block scripts %}
 <script>
     let todosUsuarios = [];
-    let userRows = [];
+    let userRows      = [];
+    let entidadeMap   = {};
+
+    const PERFIL_INFO = {
+        comum:          { label: 'Comum',          bg: '#f1f5f9', cor: '#64748b' },
+        tecnico:        { label: 'Técnico',         bg: '#eff6ff', cor: '#3b82f6' },
+        admin_entidade: { label: 'Admin. Entidade', bg: '#f5f3ff', cor: '#7c3aed' },
+        admin_geral:    { label: 'Admin. Geral',    bg: '#fef2f2', cor: '#dc2626' },
+    };
+
+    function perfilBadge(p) {
+        const { label, bg, cor } = PERFIL_INFO[p] || { label: p, bg: '#f1f5f9', cor: '#64748b' };
+        return `<span class="status-badge" style="background:${bg};color:${cor};border-color:transparent;">${label}</span>`;
+    }
 
     function aplicarBusca() {
         const termo = document.getElementById('search-usr').value.toLowerCase();
-        const filtrados = termo ? userRows.filter(r => r.termo.includes(termo)) : userRows;
-        renderRows(filtrados);
+        renderRows(termo ? userRows.filter(r => r.termo.includes(termo)) : userRows);
     }
 
     function renderRows(rows) {
@@ -167,22 +189,24 @@
     }
 
     async function carregar() {
-        const res = await authFetch(`${API}/usuarios/`);
-        todosUsuarios = await res.json();
-        const lista = Array.isArray(todosUsuarios) ? todosUsuarios : todosUsuarios.results || [];
+        const [resUsr, resEnt] = await Promise.all([
+            authFetch(`${API}/usuarios/`).then(r => r.json()),
+            authFetch(`${API}/entidades/`).then(r => r.json()),
+        ]);
+        todosUsuarios = Array.isArray(resUsr) ? resUsr : (resUsr.results || []);
+        const entArr  = Array.isArray(resEnt) ? resEnt : (resEnt.results || []);
+        entidadeMap   = Object.fromEntries(entArr.map(e => [e.id, e.nome]));
 
-        userRows = lista.map(u => {
-            const nome = [u.first_name, u.last_name].filter(Boolean).join(' ') || '—';
-            const staffBadge = u.is_staff
-                ? `<span class="status-badge" style="background:#eff6ff;color:#3b82f6;border-color:#bfdbfe;">Staff</span>`
-                : `<span class="tag-badge">Usuário</span>`;
+        userRows = todosUsuarios.map(u => {
+            const nome    = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email || '—';
+            const entNome = u.entidade ? (entidadeMap[u.entidade] || `#${u.entidade}`) : '—';
             const html = `<tr>
                 <td class="text-muted fw-medium">#${u.id}</td>
-                <td class="fw-medium">${u.username}</td>
-                <td>${nome}</td>
-                <td class="text-muted">${u.email || '—'}</td>
-                <td>${u.cargo || '—'}</td>
-                <td>${staffBadge}</td>
+                <td class="fw-medium">${nome}</td>
+                <td class="text-muted" style="font-size:.8125rem;">${u.email || '—'}</td>
+                <td class="text-muted">${u.cargo || '—'}</td>
+                <td>${perfilBadge(u.perfil)}</td>
+                <td class="text-muted">${entNome}</td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
                         <button class="btn-action" onclick="abrirEdicao(${u.id})" title="Editar"><i class="bi bi-pencil"></i></button>
@@ -190,30 +214,42 @@
                     </div>
                 </td>
             </tr>`;
-            return { id: u.id, termo: `${u.username} ${nome} ${u.email || ''} ${u.cargo || ''}`.toLowerCase(), html };
+            return { id: u.id, email: u.email, termo: `${nome} ${u.email || ''} ${u.cargo || ''} ${entNome}`.toLowerCase(), html };
         });
 
         renderRows(userRows);
+
+        ['f-entidade', 'e-entidade'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">— Nenhuma —</option>';
+            entArr.forEach(e => { sel.innerHTML += `<option value="${e.id}">${e.nome}</option>`; });
+        });
     }
 
     async function criar() {
-        const username = document.getElementById('f-username').value.trim();
-        const password = document.getElementById('f-password').value;
-        if (!username || !password) { toast('Username e senha são obrigatórios.', 'warn'); return; }
-        const body = {
-            username,
-            password,
-            first_name: document.getElementById('f-first-name').value.trim(),
-            last_name:  document.getElementById('f-last-name').value.trim(),
-            email:      document.getElementById('f-email').value.trim(),
-            cargo:      document.getElementById('f-cargo').value.trim(),
-            is_staff:   document.getElementById('f-is-staff').checked,
-        };
-        const res = await authFetch(`${API}/usuarios/`, { method: 'POST', body: JSON.stringify(body) });
+        const email  = document.getElementById('f-email').value.trim();
+        const senha  = document.getElementById('f-password').value;
+        const perfil = document.getElementById('f-perfil').value;
+        if (!email || !senha) { toast('E-mail e senha são obrigatórios.', 'warn'); return; }
+        const entidade = document.getElementById('f-entidade').value;
+        const res = await authFetch(`${API}/usuarios/`, {
+            method: 'POST',
+            body: JSON.stringify({
+                email,
+                password:   senha,
+                first_name: document.getElementById('f-first-name').value.trim(),
+                last_name:  document.getElementById('f-last-name').value.trim(),
+                cargo:      document.getElementById('f-cargo').value.trim(),
+                perfil,
+                entidade:   entidade ? parseInt(entidade) : null,
+                username:   email,
+            }),
+        });
         if (res.ok) {
             bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
-            ['f-username','f-password','f-first-name','f-last-name','f-email','f-cargo'].forEach(id => document.getElementById(id).value = '');
-            document.getElementById('f-is-staff').checked = false;
+            ['f-first-name','f-last-name','f-email','f-password','f-cargo'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('f-perfil').value   = 'comum';
+            document.getElementById('f-entidade').value = '';
             await carregar();
             toast('Usuário criado!', 'success');
         } else {
@@ -224,31 +260,31 @@
     }
 
     function abrirEdicao(id) {
-        const lista = Array.isArray(todosUsuarios) ? todosUsuarios : todosUsuarios.results || [];
-        const u = lista.find(x => x.id === id);
+        const u = todosUsuarios.find(x => x.id === id);
         if (!u) return;
         document.getElementById('e-id').value         = u.id;
-        document.getElementById('e-username').value   = u.username;
-        document.getElementById('e-password').value   = '';
         document.getElementById('e-first-name').value = u.first_name || '';
         document.getElementById('e-last-name').value  = u.last_name || '';
-        document.getElementById('e-email').value       = u.email || '';
-        document.getElementById('e-cargo').value       = u.cargo || '';
-        document.getElementById('e-is-staff').checked  = u.is_staff || false;
+        document.getElementById('e-email').value      = u.email || '';
+        document.getElementById('e-password').value   = '';
+        document.getElementById('e-cargo').value      = u.cargo || '';
+        document.getElementById('e-perfil').value     = u.perfil || 'comum';
+        document.getElementById('e-entidade').value   = u.entidade || '';
         new bootstrap.Modal(document.getElementById('modal-editar')).show();
     }
 
     async function salvarEdicao() {
-        const id       = document.getElementById('e-id').value;
-        const username = document.getElementById('e-username').value.trim();
-        if (!username) { toast('Username é obrigatório.', 'warn'); return; }
+        const id    = document.getElementById('e-id').value;
+        const email = document.getElementById('e-email').value.trim();
+        if (!email) { toast('E-mail é obrigatório.', 'warn'); return; }
+        const entidade = document.getElementById('e-entidade').value;
         const body = {
-            username,
+            email,
             first_name: document.getElementById('e-first-name').value.trim(),
             last_name:  document.getElementById('e-last-name').value.trim(),
-            email:      document.getElementById('e-email').value.trim(),
             cargo:      document.getElementById('e-cargo').value.trim(),
-            is_staff:   document.getElementById('e-is-staff').checked,
+            perfil:     document.getElementById('e-perfil').value,
+            entidade:   entidade ? parseInt(entidade) : null,
         };
         const senha = document.getElementById('e-password').value;
         if (senha) body.password = senha;
@@ -266,18 +302,13 @@
     }
 
     async function excluir(id) {
-        const me    = localStorage.getItem('username');
-        const lista = Array.isArray(todosUsuarios) ? todosUsuarios : todosUsuarios.results || [];
-        const u = lista.find(x => x.id === id);
-        if (u && u.username === me) { toast('Você não pode excluir o próprio usuário.', 'warn'); return; }
-        if (!confirm(`Excluir o usuário "${u?.username}"?`)) return;
+        const meEmail = getUsuario().email;
+        const u = todosUsuarios.find(x => x.id === id);
+        if (u && u.email === meEmail) { toast('Você não pode excluir a própria conta.', 'warn'); return; }
+        if (!confirm(`Excluir o usuário "${u?.email}"?`)) return;
         const res = await authFetch(`${API}/usuarios/${id}/`, { method: 'DELETE' });
-        if (res.ok || res.status === 204) {
-            await carregar();
-            toast('Usuário excluído.', 'default');
-        } else {
-            toast('Não foi possível excluir.', 'error');
-        }
+        if (res.ok || res.status === 204) { await carregar(); toast('Usuário excluído.', 'default'); }
+        else toast('Não foi possível excluir.', 'error');
     }
 
     document.addEventListener('DOMContentLoaded', carregar);
