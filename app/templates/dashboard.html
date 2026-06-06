@@ -12,19 +12,8 @@
                 <i class="bi bi-exclamation-circle"></i>
             </div>
             <div>
-                <div class="stat-value" id="count-aberto">—</div>
-                <div class="stat-label">Tickets Abertos</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#fffbeb;color:#d97706;">
-                <i class="bi bi-arrow-repeat"></i>
-            </div>
-            <div>
-                <div class="stat-value" id="count-andamento">—</div>
-                <div class="stat-label">Em Andamento</div>
+                <div class="stat-value" id="count-abertos">—</div>
+                <div class="stat-label">Chamados Abertos</div>
             </div>
         </div>
     </div>
@@ -34,8 +23,8 @@
                 <i class="bi bi-check-circle"></i>
             </div>
             <div>
-                <div class="stat-value" id="count-fechado">—</div>
-                <div class="stat-label">Tickets Fechados</div>
+                <div class="stat-value" id="count-concluidos">—</div>
+                <div class="stat-label">Chamados Concluídos</div>
             </div>
         </div>
     </div>
@@ -45,65 +34,111 @@
                 <i class="bi bi-pc-display"></i>
             </div>
             <div>
-                <div class="stat-value" id="count-disp">—</div>
-                <div class="stat-label">Dispositivos</div>
+                <div class="stat-value" id="count-equip">—</div>
+                <div class="stat-label">Equipamentos Ativos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#fffbeb;color:#d97706;">
+                <i class="bi bi-tools"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="count-manut">—</div>
+                <div class="stat-label">Em Manutenção</div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="table-card">
-    <div class="table-card-header">
-        <span class="table-card-title"><i class="bi bi-clock-history me-2 text-muted"></i>Tickets Recentes</span>
-        <a href="/tickets/" class="btn btn-sm btn-outline-primary">Ver todos <i class="bi bi-arrow-right ms-1"></i></a>
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="table-card">
+            <div class="table-card-header">
+                <span class="table-card-title">
+                    <i class="bi bi-clock-history me-2 text-muted"></i>Tickets Recentes
+                </span>
+                <a href="/tickets/" class="btn btn-sm btn-outline-primary">
+                    Ver todos <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Título</th>
+                        <th>Status</th>
+                        <th>Criado em</th>
+                    </tr>
+                </thead>
+                <tbody id="recent-tickets">
+                    <tr><td colspan="4" class="text-center text-muted py-4">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Título</th>
-                <th>Status</th>
-                <th>Criado em</th>
-            </tr>
-        </thead>
-        <tbody id="recent-tickets">
-            <tr><td colspan="4" class="text-center text-muted py-4">Carregando...</td></tr>
-        </tbody>
-    </table>
+    <div class="col-xl-4">
+        <div class="stat-card flex-column align-items-start" style="gap:.25rem;">
+            <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;">
+                <div class="stat-icon" style="background:#f5f3ff;color:#7c3aed;">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div>
+                    <div class="stat-value" id="count-tecnicos">—</div>
+                    <div class="stat-label">Técnicos Ativos</div>
+                </div>
+            </div>
+            <a href="/usuarios/" class="btn btn-sm btn-outline-secondary w-100 mt-1" style="font-size:.8rem;">
+                Gerenciar usuários <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    const STATUS_BADGE = {
+        aberto:      { label: 'Aberto',       cls: 'badge-aberto' },
+        assumido:    { label: 'Assumido',      cls: 'badge-assumido' },
+        em_andamento:{ label: 'Em andamento',  cls: 'badge-em_andamento' },
+        resolvido:   { label: 'Resolvido',     cls: 'badge-resolvido' },
+        encerrado:   { label: 'Encerrado',     cls: 'badge-encerrado' },
+    };
+
     function statusBadge(s) {
-        const map = { aberto: 'Aberto', em_andamento: 'Em andamento', fechado: 'Fechado' };
-        return `<span class="status-badge badge-${s}">${map[s] || s}</span>`;
+        const { label, cls } = STATUS_BADGE[s] || { label: s, cls: '' };
+        return `<span class="status-badge ${cls}">${label}</span>`;
     }
 
     async function loadDashboard() {
-        const [tickets, dispositivos] = await Promise.all([
+        const [dash, tickets] = await Promise.all([
+            authFetch(`${API}/dashboard/`).then(r => r.json()),
             authFetch(`${API}/tickets/`).then(r => r.json()),
-            authFetch(`${API}/dispositivos/`).then(r => r.json()),
         ]);
 
-        const all = Array.isArray(tickets) ? tickets : (tickets.results || []);
-        document.getElementById('count-aberto').textContent    = all.filter(t => t.status === 'aberto').length;
-        document.getElementById('count-andamento').textContent = all.filter(t => t.status === 'em_andamento').length;
-        document.getElementById('count-fechado').textContent   = all.filter(t => t.status === 'fechado').length;
-        document.getElementById('count-disp').textContent      = Array.isArray(dispositivos) ? dispositivos.length : (dispositivos.results || []).length;
+        document.getElementById('count-abertos').textContent   = dash.chamados_abertos    ?? '—';
+        document.getElementById('count-concluidos').textContent = dash.chamados_concluidos ?? '—';
+        document.getElementById('count-equip').textContent     = dash.equipamentos_ativos  ?? '—';
+        document.getElementById('count-manut').textContent     = dash.equipamentos_em_manutencao ?? '—';
+        document.getElementById('count-tecnicos').textContent  = dash.tecnicos_ativos      ?? '—';
 
-        const tbody = document.getElementById('recent-tickets');
-        const recent = all.slice(-10).reverse();
+        const lista  = Array.isArray(tickets) ? tickets : (tickets.results || []);
+        const recent = lista.slice(0, 8);
+        const tbody  = document.getElementById('recent-tickets');
+
         if (!recent.length) {
             tbody.innerHTML = `<tr><td colspan="4">
                 <div class="empty-state">
                     <i class="bi bi-ticket empty-state-icon"></i>
                     <p class="empty-state-title">Nenhum ticket ainda</p>
-                    <p class="empty-state-sub">Crie um ticket para começar.</p>
+                    <p class="empty-state-sub">Abra o primeiro ticket para começar.</p>
                 </div>
             </td></tr>`;
             return;
         }
+
         tbody.innerHTML = recent.map(t => `
             <tr>
                 <td class="text-muted fw-medium">#${t.id}</td>
