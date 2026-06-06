@@ -115,18 +115,19 @@ class MagicLinkSolicitarView(APIView):
         token_obj = MagicLinkToken.gerar(email)
         link = request.build_absolute_uri(f'/acesso/?token={token_obj.token}')
 
-        send_mail(
-            subject='Seu link de acesso – ReporTi',
-            message=(
-                f'Olá!\n\n'
-                f'Clique no link abaixo para acessar o sistema (válido por 15 minutos):\n\n'
-                f'{link}\n\n'
-                f'Se você não solicitou este acesso, ignore este e-mail.'
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
-        )
+        if not settings.DEBUG:
+            send_mail(
+                subject='Seu link de acesso – ReporTi',
+                message=(
+                    f'Olá!\n\n'
+                    f'Clique no link abaixo para acessar o sistema (válido por 15 minutos):\n\n'
+                    f'{link}\n\n'
+                    f'Se você não solicitou este acesso, ignore este e-mail.'
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
 
         resposta = {'mensagem': 'Link enviado para o e-mail informado.'}
         if settings.DEBUG:

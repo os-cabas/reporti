@@ -29,31 +29,85 @@
         .topbar-brand { display: flex; align-items: center; gap: .5rem; font-weight: 800; font-size: 1.125rem; color: #1E293B; }
         .topbar-brand i { color: #2563EB; font-size: 1.25rem; }
         .topbar-actions { display: flex; align-items: center; gap: .5rem; }
-        .topbar-user { font-size: .8125rem; font-weight: 600; color: #475569; }
         .btn-icon { background: none; border: none; color: #64748B; font-size: 1.125rem; cursor: pointer; padding: .375rem; border-radius: 8px; }
         .btn-icon:hover { background: #F1F5F9; }
 
         /* ── Content ──────────────────────────── */
         .content { flex: 1; padding: 1.25rem; max-width: 600px; width: 100%; margin: 0 auto; padding-bottom: 6rem; }
-        .page-title { font-size: 1.25rem; font-weight: 700; color: #1E293B; margin: 0 0 1rem; }
+
+        /* ── Greeting ─────────────────────────── */
+        .greeting-section {
+            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+            border-radius: 18px; padding: 1.25rem 1.375rem 1.125rem;
+            margin-bottom: 1.125rem; color: #fff;
+        }
+        .greeting-hello { font-size: 1.125rem; font-weight: 700; margin: 0 0 .125rem; }
+        .greeting-sub { font-size: .8125rem; color: rgba(255,255,255,.75); margin: 0 0 1rem; }
+        .stats-row { display: flex; gap: .625rem; flex-wrap: wrap; }
+        .stat-chip {
+            display: flex; align-items: center; gap: .375rem;
+            background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2);
+            border-radius: 99px; padding: .3rem .75rem;
+            font-size: .78rem; font-weight: 600; color: #fff;
+            white-space: nowrap;
+        }
+        .stat-chip i { font-size: .75rem; }
+
+        /* ── Filter tabs ──────────────────────── */
+        .filter-bar {
+            display: flex; gap: .375rem; margin-bottom: 1rem;
+            overflow-x: auto; padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+        .filter-bar::-webkit-scrollbar { display: none; }
+        .filter-tab {
+            flex-shrink: 0; padding: .4375rem .875rem;
+            border: 1.5px solid #D1D9E6; border-radius: 99px;
+            background: #fff; color: #64748B;
+            font-family: 'Inter', sans-serif; font-size: .8125rem; font-weight: 600;
+            cursor: pointer; white-space: nowrap;
+            transition: background .12s, border-color .12s, color .12s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .filter-tab.active {
+            background: #2563EB; border-color: #2563EB; color: #fff;
+        }
 
         /* ── Ticket card ──────────────────────── */
         .ticket-card {
             background: #fff; border: 1px solid #E2E8F0; border-radius: 14px;
             padding: 1rem 1.125rem; margin-bottom: .75rem;
             display: flex; gap: .875rem; align-items: flex-start;
+            transition: box-shadow .15s;
         }
-        .ticket-status-bar { width: 4px; border-radius: 4px; flex-shrink: 0; align-self: stretch; min-height: 40px; }
+        .ticket-card:active { box-shadow: 0 2px 12px rgba(37,99,235,.1); }
+        .ticket-status-bar { width: 4px; border-radius: 4px; flex-shrink: 0; align-self: stretch; min-height: 48px; }
         .ticket-body { flex: 1; min-width: 0; }
         .ticket-titulo { font-size: .9375rem; font-weight: 600; color: #1E293B; margin: 0 0 .25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .ticket-meta { font-size: .78rem; color: #64748B; display: flex; flex-wrap: wrap; gap: .5rem; }
+        .ticket-desc { font-size: .8125rem; color: #64748B; margin: 0 0 .5rem;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.45; }
+        .ticket-meta { font-size: .78rem; color: #94A3B8; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
         .status-pill { display: inline-flex; align-items: center; padding: .15rem .5rem; border-radius: 99px; font-size: .72rem; font-weight: 600; }
+        .ticket-date { display: flex; align-items: center; gap: .25rem; }
+        .ticket-tecnico { display: flex; align-items: center; gap: .25rem; color: #475569; font-weight: 500; }
 
         /* ── Empty state ──────────────────────── */
         .empty { text-align: center; padding: 3rem 1rem; }
-        .empty i { font-size: 2.5rem; color: #CBD5E1; display: block; margin-bottom: .75rem; }
-        .empty-title { font-size: 1rem; font-weight: 600; color: #94A3B8; margin: 0 0 .25rem; }
-        .empty-sub { font-size: .875rem; color: #B0BBCB; margin: 0; }
+        .empty-icon-wrap {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: #EFF6FF; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto .875rem;
+        }
+        .empty-icon-wrap i { font-size: 2rem; color: #93C5FD; }
+        .empty-title { font-size: 1rem; font-weight: 700; color: #334155; margin: 0 0 .375rem; }
+        .empty-sub { font-size: .875rem; color: #94A3B8; margin: 0 0 1.5rem; }
+        .btn-empty-action {
+            display: inline-flex; align-items: center; gap: .4rem;
+            padding: .6875rem 1.375rem; border: none; border-radius: 12px;
+            background: #2563EB; color: #fff;
+            font-family: 'Inter', sans-serif; font-size: .9375rem; font-weight: 600;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+        }
 
         /* ── Bottom FAB ───────────────────────── */
         .bottom-bar {
@@ -156,6 +210,13 @@
         .spin { width: 18px; height: 18px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: rot .65s linear infinite; flex-shrink: 0; }
         @keyframes rot { to { transform: rotate(360deg); } }
 
+        /* ── Skeleton ─────────────────────────── */
+        .skeleton { background: linear-gradient(90deg, #E2E8F0 25%, #EEF2F7 50%, #E2E8F0 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .skeleton-card { background: #fff; border: 1px solid #E2E8F0; border-radius: 14px; padding: 1rem 1.125rem; margin-bottom: .75rem; display: flex; gap: .875rem; }
+        .skeleton-bar { width: 4px; border-radius: 4px; min-height: 56px; }
+        .skeleton-body { flex: 1; display: flex; flex-direction: column; gap: .5rem; padding-top: .125rem; }
+
         /* ── Scanner overlay ──────────────────── */
         .scanner-overlay {
             position: fixed; inset: 0; z-index: 500;
@@ -188,19 +249,35 @@
         <i class="bi bi-ticket-fill"></i>ReporTi
     </div>
     <div class="topbar-actions">
-        <span class="topbar-user" id="user-nome"></span>
         <button class="btn-icon" onclick="logout()" title="Sair"><i class="bi bi-box-arrow-right"></i></button>
     </div>
 </header>
 
-<!-- ── Ticket list ─────────────────────────────────────────────────────────── -->
+<!-- ── Main content ────────────────────────────────────────────────────────── -->
 <div class="content">
-    <p class="page-title">Meus Reportes</p>
-    <div id="ticket-list">
-        <div class="empty">
-            <i class="bi bi-hourglass-split"></i>
-            <p class="empty-title">Carregando…</p>
+
+    <!-- Greeting + stats -->
+    <div class="greeting-section">
+        <p class="greeting-hello">Olá, <span id="user-nome">...</span></p>
+        <p class="greeting-sub">Acompanhe seus reportes abaixo</p>
+        <div class="stats-row" id="stats-row">
+            <span class="stat-chip"><i class="bi bi-hourglass-split"></i> Carregando…</span>
         </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="filter-bar" id="filter-bar">
+        <button class="filter-tab active" data-status="todos"         onclick="filtrar('todos',this)">Todos</button>
+        <button class="filter-tab"        data-status="aberto"        onclick="filtrar('aberto',this)">Abertos</button>
+        <button class="filter-tab"        data-status="em_andamento"  onclick="filtrar('em_andamento',this)">Em andamento</button>
+        <button class="filter-tab"        data-status="assumido"      onclick="filtrar('assumido',this)">Assumidos</button>
+        <button class="filter-tab"        data-status="resolvido"     onclick="filtrar('resolvido',this)">Resolvidos</button>
+    </div>
+
+    <!-- Ticket list -->
+    <div id="ticket-list">
+        <div class="skeleton-card"><div class="skeleton skeleton-bar"></div><div class="skeleton-body"><div class="skeleton" style="height:14px;width:60%;"></div><div class="skeleton" style="height:12px;width:85%;"></div><div class="skeleton" style="height:12px;width:40%;"></div></div></div>
+        <div class="skeleton-card"><div class="skeleton skeleton-bar"></div><div class="skeleton-body"><div class="skeleton" style="height:14px;width:75%;"></div><div class="skeleton" style="height:12px;width:50%;"></div></div></div>
     </div>
 </div>
 
@@ -272,6 +349,8 @@
     const API = '/api';
     let dispositivoAtual = null;
     let qrScanner = null;
+    let todosTickets = [];
+    let filtroAtivo = 'todos';
 
     function getToken()   { return localStorage.getItem('access'); }
     function getUsuario() { try { return JSON.parse(localStorage.getItem('usuario') || '{}'); } catch { return {}; } }
@@ -295,11 +374,11 @@
     // ── Status helpers ────────────────────────────────────────────────────────
 
     const STATUS_INFO = {
-        aberto:      { label: 'Aberto',       cor: '#DC2626', bg: '#FEF2F2', barra: '#DC2626' },
-        assumido:    { label: 'Assumido',      cor: '#D97706', bg: '#FFFBEB', barra: '#D97706' },
-        em_andamento:{ label: 'Em andamento',  cor: '#2563EB', bg: '#EFF6FF', barra: '#2563EB' },
-        resolvido:   { label: 'Resolvido',     cor: '#16A34A', bg: '#F0FDF4', barra: '#16A34A' },
-        encerrado:   { label: 'Encerrado',     cor: '#64748B', bg: '#F1F5F9', barra: '#CBD5E1' },
+        aberto:       { label: 'Aberto',        cor: '#DC2626', bg: '#FEF2F2', barra: '#DC2626' },
+        assumido:     { label: 'Assumido',       cor: '#D97706', bg: '#FFFBEB', barra: '#D97706' },
+        em_andamento: { label: 'Em andamento',   cor: '#2563EB', bg: '#EFF6FF', barra: '#2563EB' },
+        resolvido:    { label: 'Resolvido',      cor: '#16A34A', bg: '#F0FDF4', barra: '#16A34A' },
+        encerrado:    { label: 'Encerrado',      cor: '#64748B', bg: '#F1F5F9', barra: '#CBD5E1' },
     };
 
     function statusPill(s) {
@@ -310,7 +389,83 @@
     function fmtData(iso) {
         if (!iso) return '';
         const d = new Date(iso);
-        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+        const agora = new Date();
+        const diffDias = Math.floor((agora - d) / 86400000);
+        if (diffDias === 0) return 'Hoje';
+        if (diffDias === 1) return 'Ontem';
+        if (diffDias < 7)  return `${diffDias} dias atrás`;
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    }
+
+    // ── Atualizar chips de estatísticas ───────────────────────────────────────
+
+    function atualizarStats(tickets) {
+        const total     = tickets.length;
+        const abertos   = tickets.filter(t => t.status === 'aberto').length;
+        const andamento = tickets.filter(t => t.status === 'em_andamento' || t.status === 'assumido').length;
+        const resolvidos= tickets.filter(t => t.status === 'resolvido' || t.status === 'encerrado').length;
+
+        const el = document.getElementById('stats-row');
+        if (!total) {
+            el.innerHTML = `<span class="stat-chip"><i class="bi bi-inbox"></i> Nenhum reporte</span>`;
+            return;
+        }
+        el.innerHTML = `
+            <span class="stat-chip"><i class="bi bi-ticket"></i> ${total} total</span>
+            ${abertos   ? `<span class="stat-chip"><i class="bi bi-circle-fill" style="color:#FCA5A5;font-size:.5rem;"></i> ${abertos} aberto${abertos>1?'s':''}</span>` : ''}
+            ${andamento ? `<span class="stat-chip"><i class="bi bi-circle-fill" style="color:#93C5FD;font-size:.5rem;"></i> ${andamento} em andamento</span>` : ''}
+            ${resolvidos? `<span class="stat-chip"><i class="bi bi-circle-fill" style="color:#86EFAC;font-size:.5rem;"></i> ${resolvidos} resolvido${resolvidos>1?'s':''}</span>` : ''}
+        `;
+    }
+
+    // ── Renderizar lista ──────────────────────────────────────────────────────
+
+    function renderizarLista(tickets) {
+        const lista = document.getElementById('ticket-list');
+        if (!tickets.length) {
+            const isFiltered = filtroAtivo !== 'todos';
+            lista.innerHTML = `
+                <div class="empty">
+                    <div class="empty-icon-wrap">
+                        <i class="bi bi-${isFiltered ? 'funnel' : 'inbox'}"></i>
+                    </div>
+                    <p class="empty-title">${isFiltered ? 'Nenhum reporte nessa categoria' : 'Nenhum reporte ainda'}</p>
+                    <p class="empty-sub">${isFiltered ? 'Tente outro filtro ou abra um novo reporte.' : 'Toque em "Abrir Reporte" para registrar um problema.'}</p>
+                    ${!isFiltered ? `<button class="btn-empty-action" onclick="abrirSheet()"><i class="bi bi-plus-lg"></i>Abrir Reporte</button>` : ''}
+                </div>`;
+            return;
+        }
+        lista.innerHTML = tickets.map(t => {
+            const info    = STATUS_INFO[t.status] || {};
+            const disp    = t.dispositivo_detail || {};
+            const equipInfo = [disp.tipo, disp.marca].filter(Boolean).join(' ') || (t.dispositivo ? `#${t.dispositivo}` : null);
+            const tecnico = t.tecnico_nome || t.tecnico_detail?.nome || null;
+            const desc    = (t.descricao || '').trim();
+
+            return `<div class="ticket-card">
+                <div class="ticket-status-bar" style="background:${info.barra || '#CBD5E1'};"></div>
+                <div class="ticket-body">
+                    <p class="ticket-titulo">${t.titulo || '(sem título)'}</p>
+                    ${desc ? `<p class="ticket-desc">${desc}</p>` : ''}
+                    <div class="ticket-meta">
+                        ${statusPill(t.status)}
+                        ${equipInfo ? `<span><i class="bi bi-pc-display" style="font-size:.7rem;"></i> ${equipInfo}</span>` : ''}
+                        ${tecnico   ? `<span class="ticket-tecnico"><i class="bi bi-person-fill" style="font-size:.7rem;"></i> ${tecnico}</span>` : ''}
+                        <span class="ticket-date"><i class="bi bi-clock" style="font-size:.7rem;"></i> ${fmtData(t.criado_em)}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ── Filtrar ───────────────────────────────────────────────────────────────
+
+    function filtrar(status, btn) {
+        filtroAtivo = status;
+        document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filtrados = status === 'todos' ? todosTickets : todosTickets.filter(t => t.status === status);
+        renderizarLista(filtrados);
     }
 
     // ── Carregar tickets ──────────────────────────────────────────────────────
@@ -319,33 +474,10 @@
         const res = await authFetch(`${API}/tickets/`);
         if (!res.ok) { if (res.status === 401) logout(); return; }
         const data = await res.json();
-        const tickets = Array.isArray(data) ? data : (data.results || []);
-        const lista = document.getElementById('ticket-list');
-        if (!tickets.length) {
-            lista.innerHTML = `
-                <div class="empty">
-                    <i class="bi bi-inbox"></i>
-                    <p class="empty-title">Nenhum reporte ainda</p>
-                    <p class="empty-sub">Toque em "Abrir Reporte" para registrar um problema.</p>
-                </div>`;
-            return;
-        }
-        lista.innerHTML = tickets.map(t => {
-            const info = STATUS_INFO[t.status] || {};
-            const disp = t.dispositivo_detail || {};
-            const equipInfo = [disp.tipo, disp.marca].filter(Boolean).join(' ') || `#${t.dispositivo}` || '—';
-            return `<div class="ticket-card">
-                <div class="ticket-status-bar" style="background:${info.barra || '#CBD5E1'};"></div>
-                <div class="ticket-body">
-                    <p class="ticket-titulo">${t.titulo || '(sem título)'}</p>
-                    <div class="ticket-meta">
-                        ${statusPill(t.status)}
-                        <span><i class="bi bi-pc-display" style="font-size:.7rem;"></i> ${equipInfo}</span>
-                        <span>${fmtData(t.criado_em)}</span>
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
+        todosTickets = Array.isArray(data) ? data : (data.results || []);
+        atualizarStats(todosTickets);
+        const filtrados = filtroAtivo === 'todos' ? todosTickets : todosTickets.filter(t => t.status === filtroAtivo);
+        renderizarLista(filtrados);
     }
 
     // ── Bottom sheet ──────────────────────────────────────────────────────────
@@ -403,13 +535,13 @@
     }
 
     function fecharScanner() {
-        if (qrScanner) {
-            qrScanner.stop().catch(() => {});
-            qrScanner.clear();
-            qrScanner = null;
-        }
         document.getElementById('scanner-overlay').classList.remove('open');
-        document.body.style.overflow = 'hidden'; // keep sheet scroll locked
+        document.body.style.overflow = '';
+        if (qrScanner) {
+            const scanner = qrScanner;
+            qrScanner = null;
+            scanner.stop().catch(() => {}).finally(() => { try { scanner.clear(); } catch (_) {} });
+        }
     }
 
     // ── Buscar dispositivo ────────────────────────────────────────────────────
@@ -440,7 +572,6 @@
             document.getElementById('device-nome').textContent = [d.tipo, d.marca].filter(Boolean).join(' ') || d.codigo_qr;
             document.getElementById('device-info').textContent = [d.sala, d.situacao_display].filter(Boolean).join(' · ');
             document.getElementById('device-preview').classList.add('show');
-            // avança para passo 2
             document.getElementById('passo-device').style.display = 'none';
             document.getElementById('passo-ticket').style.display = '';
             document.getElementById('ticket-titulo').focus();
@@ -465,9 +596,9 @@
     // ── Enviar reporte ────────────────────────────────────────────────────────
 
     async function enviarReporte() {
-        const titulo = document.getElementById('ticket-titulo').value.trim();
+        const titulo   = document.getElementById('ticket-titulo').value.trim();
         const descricao = document.getElementById('ticket-descricao').value.trim();
-        const erroEl = document.getElementById('ticket-erro');
+        const erroEl   = document.getElementById('ticket-erro');
 
         if (!titulo) {
             erroEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Informe um título para o reporte.';
