@@ -516,24 +516,28 @@
         wrap.innerHTML = '';
         document.getElementById('qr-codigo-label').textContent = codigo;
         new bootstrap.Modal(document.getElementById('modal-qr')).show();
-        // gera QR após o modal estar visível
         document.getElementById('modal-qr').addEventListener('shown.bs.modal', () => {
             wrap.innerHTML = '';
-            QRCode.toCanvas(document.createElement('canvas'), codigo, { width: 200, margin: 2 }, (err, canvas) => {
-                if (!err) { canvas.style.borderRadius = '8px'; wrap.appendChild(canvas); }
+            QRCode.toDataURL(codigo, { width: 200, margin: 2 }, (err, url) => {
+                if (!err) {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.style.cssText = 'width:200px;height:200px;border-radius:8px;';
+                    wrap.appendChild(img);
+                }
             });
         }, { once: true });
     }
 
     function imprimirQr() {
-        const canvas = document.querySelector('#qr-canvas-wrap canvas');
-        if (!canvas) return;
+        const img = document.querySelector('#qr-canvas-wrap img');
+        if (!img) return;
         const codigo = document.getElementById('qr-codigo-label').textContent;
         const win = window.open('', '_blank');
         win.document.write(`<!DOCTYPE html><html><head><title>QR — ${codigo}</title>
             <style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;}
             p{margin:.5rem 0 0;font-size:14px;color:#333;font-weight:600;letter-spacing:.5px;}</style></head>
-            <body><img src="${canvas.toDataURL()}"><p>${codigo}</p></body></html>`);
+            <body><img src="${img.src}"><p>${codigo}</p></body></html>`);
         win.document.close();
         win.focus();
         setTimeout(() => { win.print(); win.close(); }, 300);

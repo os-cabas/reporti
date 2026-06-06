@@ -192,6 +192,8 @@
 
             if (t.status === 'aberto')
                 acoes.push(`<button class="btn-action btn-action-warn" onclick="assumir(${t.id})" title="Assumir"><i class="bi bi-person-check"></i></button>`);
+            if (t.status === 'assumido')
+                acoes.push(`<button class="btn-action" onclick="marcarEmAndamento(${t.id})" title="Iniciar atendimento" style="background:#eff6ff;color:#2563eb;"><i class="bi bi-play-fill"></i></button>`);
             if (t.status === 'assumido' || t.status === 'em_andamento')
                 acoes.push(`<button class="btn-action btn-action-success" onclick="abrirAcao(${t.id},'resolver')" title="Resolver"><i class="bi bi-check-lg"></i></button>`);
             if (t.status === 'resolvido')
@@ -337,6 +339,18 @@
         else {
             const err = await res.json().catch(() => ({}));
             toast(err.detail || 'Não foi possível assumir.', 'error');
+        }
+    }
+
+    async function marcarEmAndamento(id) {
+        const res = await authFetch(`${API}/tickets/${id}/atualizar-status/`, {
+            method: 'POST',
+            body: JSON.stringify({ status: 'em_andamento' }),
+        });
+        if (res.ok) { await carregar(); toast('Ticket em andamento!', 'success'); }
+        else {
+            const err = await res.json().catch(() => ({}));
+            toast(err.detail || 'Não foi possível atualizar.', 'error');
         }
     }
 
