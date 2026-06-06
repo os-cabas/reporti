@@ -5,6 +5,10 @@ from django.views.generic import TemplateView
 class LoginPageView(TemplateView):
     template_name = 'login.html'
 
+
+class AcessoPageView(TemplateView):
+    template_name = 'acesso.html'
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['google_client_id'] = settings.GOOGLE_CLIENT_ID

@@ -6,7 +6,7 @@ from app.serializers.token import AdminTokenObtainSerializer
 from app.views.auth_view import GoogleAuthView, MagicLinkSolicitarView, MagicLinkVerificarView
 from app.views.dashboard_view import DashboardView
 from app.views.pages_view import (
-    LoginPageView, DashboardPageView, TicketsPageView,
+    LoginPageView, AcessoPageView, DashboardPageView, TicketsPageView,
     DispositivosPageView, SalasPageView, EntidadesPageView,
     CategoriasPageView, ModelosPageView, UsuariosPageView, PermissoesPageView,
     ManutencoesPageView,
@@ -35,6 +35,7 @@ urlpatterns = [
 
     # ── Pages (templates) ─────────────────────────────────────────────────────
     path('login/', LoginPageView.as_view(), name='login'),
+    path('acesso/', AcessoPageView.as_view(), name='acesso'),
     path('tickets/', TicketsPageView.as_view(), name='tickets'),
     path('dispositivos/', DispositivosPageView.as_view(), name='dispositivos'),
     path('salas/', SalasPageView.as_view(), name='salas'),

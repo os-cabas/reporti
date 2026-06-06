@@ -113,7 +113,7 @@ class MagicLinkSolicitarView(APIView):
             return Response({'erro': 'Campo email é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
         token_obj = MagicLinkToken.gerar(email)
-        link = request.build_absolute_uri(f'/login/?token={token_obj.token}')
+        link = request.build_absolute_uri(f'/acesso/?token={token_obj.token}')
 
         send_mail(
             subject='Seu link de acesso – ReporTi',

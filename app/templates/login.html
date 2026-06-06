@@ -15,137 +15,39 @@
 <body>
 
 <div class="login-wrapper">
-    <div class="login-card" style="max-width:420px;">
+    <div class="login-card" style="max-width:400px;">
         <div class="login-brand">
             <div class="login-brand-icon"><i class="bi bi-ticket-fill"></i></div>
             <span class="login-brand-name">ReporTi</span>
         </div>
-        <p class="login-subtitle">Sistema de Gerenciamento de Chamados</p>
+        <p class="login-subtitle">Acesso para Gestores e Técnicos</p>
 
-        <!-- Abas de modo de acesso -->
-        <ul class="nav nav-pills nav-fill mb-4" style="background:#f1f5f9;border-radius:8px;padding:4px;">
-            <li class="nav-item">
-                <button class="nav-link active w-100" id="tab-admin" onclick="mudarAba('admin')" style="font-size:.8125rem;font-weight:600;border-radius:6px;">
-                    <i class="bi bi-shield-lock me-1"></i>Gestor / Técnico
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link w-100" id="tab-comum" onclick="mudarAba('comum')" style="font-size:.8125rem;font-weight:600;border-radius:6px;">
-                    <i class="bi bi-person me-1"></i>Usuário Comum
-                </button>
-            </li>
-        </ul>
-
-        <!-- ─── Painel Admin / Técnico ─── -->
-        <div id="painel-admin">
-            <form onsubmit="loginAdmin(event)">
-                <div class="mb-3">
-                    <label class="form-label" for="admin-email">E-mail</label>
-                    <input type="email" id="admin-email" class="form-control" placeholder="seu@email.com"
-                           required autofocus autocomplete="email">
-                </div>
-                <div class="mb-4">
-                    <label class="form-label" for="admin-senha">Senha</label>
-                    <input type="password" id="admin-senha" class="form-control" placeholder="••••••••"
-                           required autocomplete="current-password">
-                </div>
-                <div class="alert alert-danger py-2 px-3 mb-3" id="admin-erro" style="display:none;font-size:.8125rem;">
-                    <i class="bi bi-exclamation-circle me-1"></i><span id="admin-erro-msg"></span>
-                </div>
-                <button type="submit" class="btn btn-primary w-100 fw-semibold" id="btn-admin">Entrar</button>
-            </form>
-        </div>
-
-        <!-- ─── Painel Usuário Comum ─── -->
-        <div id="painel-comum" style="display:none;">
-
-            <!-- Google Sign-In -->
-            <div class="d-grid mb-3">
-                <button class="btn btn-outline-secondary fw-semibold" id="btn-google" onclick="loginGoogle()"
-                        style="display:flex;align-items:center;justify-content:center;gap:.5rem;">
-                    <svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0;">
-                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                    </svg>
-                    Entrar com Google
-                </button>
+        <form onsubmit="loginAdmin(event)">
+            <div class="mb-3">
+                <label class="form-label" for="admin-email">E-mail</label>
+                <input type="email" id="admin-email" class="form-control" placeholder="seu@email.com"
+                       required autofocus autocomplete="email">
             </div>
-            <div class="alert alert-warning py-2 px-3 mb-3" id="google-erro" style="display:none;font-size:.8125rem;">
-                <i class="bi bi-exclamation-triangle me-1"></i><span id="google-erro-msg"></span>
+            <div class="mb-4">
+                <label class="form-label" for="admin-senha">Senha</label>
+                <input type="password" id="admin-senha" class="form-control" placeholder="••••••••"
+                       required autocomplete="current-password">
             </div>
+            <div class="alert alert-danger py-2 px-3 mb-3" id="admin-erro" style="display:none;font-size:.8125rem;">
+                <i class="bi bi-exclamation-circle me-1"></i><span id="admin-erro-msg"></span>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 fw-semibold" id="btn-admin">Entrar</button>
+        </form>
 
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <hr class="flex-grow-1 m-0">
-                <span class="text-muted" style="font-size:.75rem;white-space:nowrap;">ou acesse via link</span>
-                <hr class="flex-grow-1 m-0">
-            </div>
-
-            <!-- Magic Link — passo 1: solicitar -->
-            <div id="magic-step1">
-                <div class="mb-3">
-                    <label class="form-label" for="magic-email">Seu e-mail</label>
-                    <input type="email" id="magic-email" class="form-control"
-                           placeholder="voce@instituicao.edu.br" autocomplete="email">
-                </div>
-                <div class="alert alert-danger py-2 px-3 mb-3" id="magic-erro" style="display:none;font-size:.8125rem;">
-                    <i class="bi bi-exclamation-circle me-1"></i><span id="magic-erro-msg"></span>
-                </div>
-                <button class="btn btn-outline-primary w-100 fw-semibold" id="btn-magic" onclick="enviarMagicLink()">
-                    <i class="bi bi-envelope me-1"></i>Enviar Link de Acesso
-                </button>
-            </div>
-
-            <!-- Magic Link — passo 2: inserir token -->
-            <div id="magic-step2" style="display:none;">
-                <div class="alert alert-success py-2 px-3 mb-3" id="magic-step2-aviso" style="font-size:.8125rem;">
-                    <i class="bi bi-envelope-check me-1"></i>Link enviado! Cole o token do e-mail abaixo.
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" for="magic-token">Token</label>
-                    <input type="text" id="magic-token" class="form-control font-monospace"
-                           placeholder="Cole o token aqui" autocomplete="off">
-                </div>
-                <div class="alert alert-danger py-2 px-3 mb-3" id="token-erro" style="display:none;font-size:.8125rem;">
-                    <i class="bi bi-exclamation-circle me-1"></i><span id="token-erro-msg"></span>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary btn-sm flex-shrink-0" onclick="voltarStep1()">
-                        <i class="bi bi-arrow-left"></i>
-                    </button>
-                    <button class="btn btn-primary w-100 fw-semibold" id="btn-verificar" onclick="verificarToken()">
-                        Verificar
-                    </button>
-                </div>
-            </div>
-        </div>
+        <p class="text-center mt-4 mb-0" style="font-size:.8125rem;color:#94A3B8;">
+            Usuário comum? <a href="/acesso/" class="text-primary fw-semibold text-decoration-none">Acesse por aqui</a>
+        </p>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
     if (localStorage.getItem('access')) window.location.href = '/';
-
-    const GOOGLE_CLIENT_ID = '{{ google_client_id }}';
-
-    // Persiste tokens e objeto usuario; redireciona para a home
-    function salvarSessao(data) {
-        localStorage.setItem('access',  data.access);
-        localStorage.setItem('refresh', data.refresh);
-        if (data.usuario) localStorage.setItem('usuario', JSON.stringify(data.usuario));
-        window.location.href = '/';
-    }
-
-    function mudarAba(aba) {
-        document.getElementById('painel-admin').style.display = aba === 'admin' ? '' : 'none';
-        document.getElementById('painel-comum').style.display = aba === 'comum' ? '' : 'none';
-        document.getElementById('tab-admin').classList.toggle('active', aba === 'admin');
-        document.getElementById('tab-comum').classList.toggle('active', aba === 'comum');
-        if (aba === 'admin') document.getElementById('admin-email').focus();
-        if (aba === 'comum') agendarInicioGoogle();
-    }
 
     async function loginAdmin(e) {
         e.preventDefault();
@@ -165,7 +67,11 @@
         });
 
         if (res.ok) {
-            salvarSessao(await res.json());
+            const data = await res.json();
+            localStorage.setItem('access',  data.access);
+            localStorage.setItem('refresh', data.refresh);
+            if (data.usuario) localStorage.setItem('usuario', JSON.stringify(data.usuario));
+            window.location.href = '/';
         } else {
             const data = await res.json().catch(() => ({}));
             const msgs = Object.values(data).flat();
@@ -176,165 +82,6 @@
             btn.textContent = 'Entrar';
         }
     }
-
-    let googleReady = false;
-    let googleBtnHtml = '';
-
-    function agendarInicioGoogle() {
-        if (!googleBtnHtml) googleBtnHtml = document.getElementById('btn-google').innerHTML;
-        if (window.google) inicializarGoogle();
-    }
-
-    function inicializarGoogle() {
-        if (googleReady || !GOOGLE_CLIENT_ID || !window.google) return;
-        googleReady = true;
-        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
-    }
-
-    function resetarBtnGoogle() {
-        const btn = document.getElementById('btn-google');
-        btn.disabled = false;
-        btn.innerHTML = googleBtnHtml;
-    }
-
-    function mostrarErroGoogle(msg) {
-        resetarBtnGoogle();
-        document.getElementById('google-erro-msg').textContent = msg;
-        document.getElementById('google-erro').style.display = 'block';
-    }
-
-    function loginGoogle() {
-        if (!GOOGLE_CLIENT_ID) { mostrarErroGoogle('Google OAuth não configurado neste ambiente.'); return; }
-        if (!window.google)    { mostrarErroGoogle('Biblioteca do Google não carregada. Verifique sua conexão.'); return; }
-        inicializarGoogle();
-        document.getElementById('google-erro').style.display = 'none';
-        const btn = document.getElementById('btn-google');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Aguardando…';
-        google.accounts.id.prompt(notif => {
-            if (notif.isNotDisplayed()) {
-                const motivo = notif.getNotDisplayedReason();
-                const msg = motivo === 'unregistered_origin'
-                    ? 'Domínio não autorizado. Adicione http://127.0.0.1:8000 nas Origens JavaScript autorizadas no Google Cloud Console.'
-                    : `Login com Google indisponível (${motivo}).`;
-                mostrarErroGoogle(msg);
-            } else if (notif.isDismissedMoment() || notif.isSkippedMoment()) {
-                resetarBtnGoogle();
-            }
-        });
-    }
-
-    async function handleGoogleCredential(response) {
-        const btn = document.getElementById('btn-google');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verificando…';
-        document.getElementById('google-erro').style.display = 'none';
-
-        const res = await fetch('/api/auth/google/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id_token: response.credential }),
-        });
-
-        if (res.ok) {
-            salvarSessao(await res.json());
-        } else {
-            const data = await res.json().catch(() => ({}));
-            mostrarErroGoogle(data.erro || data.detail || 'Falha na autenticação com Google.');
-        }
-    }
-
-    async function enviarMagicLink() {
-        const email = document.getElementById('magic-email').value.trim();
-        if (!email) { document.getElementById('magic-email').focus(); return; }
-
-        const btn  = document.getElementById('btn-magic');
-        const erro = document.getElementById('magic-erro');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando…';
-        erro.style.display = 'none';
-
-        const res = await fetch('/api/auth/magic-link/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-        });
-
-        if (res.ok) {
-            const data = await res.json();
-            document.getElementById('magic-step1').style.display = 'none';
-            document.getElementById('magic-step2').style.display = '';
-            if (data.debug_link) {
-                try {
-                    const debugToken = new URL(data.debug_link).searchParams.get('token');
-                    if (debugToken) {
-                        document.getElementById('magic-token').value = debugToken;
-                        document.getElementById('magic-step2-aviso').innerHTML =
-                            '<i class="bi bi-bug me-1"></i>Modo desenvolvimento: token preenchido automaticamente.';
-                    }
-                } catch {}
-            }
-            document.getElementById('magic-token').focus();
-        } else {
-            const data = await res.json().catch(() => ({}));
-            document.getElementById('magic-erro-msg').textContent =
-                data.detail || (data.email && data.email[0]) || 'Erro ao enviar. Verifique o e-mail.';
-            erro.style.display = 'block';
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-envelope me-1"></i>Enviar Link de Acesso';
-        }
-    }
-
-    async function verificarToken() {
-        const token = document.getElementById('magic-token').value.trim();
-        if (!token) { document.getElementById('magic-token').focus(); return; }
-
-        const btn  = document.getElementById('btn-verificar');
-        const erro = document.getElementById('token-erro');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verificando…';
-        erro.style.display = 'none';
-
-        const res = await fetch('/api/auth/magic-link/verificar/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token }),
-        });
-
-        if (res.ok) {
-            salvarSessao(await res.json());
-        } else {
-            const data = await res.json().catch(() => ({}));
-            document.getElementById('token-erro-msg').textContent =
-                data.detail || (data.token && data.token[0]) || 'Token inválido ou expirado.';
-            erro.style.display = 'block';
-            btn.disabled = false;
-            btn.textContent = 'Verificar';
-        }
-    }
-
-    function voltarStep1() {
-        document.getElementById('magic-step2').style.display = 'none';
-        document.getElementById('magic-step1').style.display = '';
-        document.getElementById('token-erro').style.display = 'none';
-        document.getElementById('magic-token').value = '';
-        const btn = document.getElementById('btn-magic');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-envelope me-1"></i>Enviar Link de Acesso';
-    }
-
-    // Auto-verificar se o link de e-mail trouxer ?token=
-    const urlToken = new URLSearchParams(window.location.search).get('token');
-    if (urlToken) {
-        mudarAba('comum');
-        document.getElementById('magic-step1').style.display = 'none';
-        document.getElementById('magic-step2').style.display = '';
-        document.getElementById('magic-token').value = urlToken;
-        verificarToken();
-    }
-
-    // Inicializar Google após a biblioteca GSI carregar
-    document.addEventListener('load', agendarInicioGoogle, { once: true });
 </script>
 </body>
 </html>
