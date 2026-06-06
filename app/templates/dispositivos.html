@@ -55,12 +55,9 @@
             <div class="modal-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Código QR <span class="text-danger">*</span></label>
-                        <input type="text" id="f-qr" class="form-control form-control-sm" placeholder="Ex: QR-2024-001">
-                    </div>
-                    <div class="col-md-6">
                         <label class="form-label">Patrimônio</label>
                         <input type="text" id="f-patrimonio" class="form-control form-control-sm" placeholder="Ex: 00123">
+                        <div class="form-text">O QR Code será gerado automaticamente a partir do patrimônio.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Tipo</label>
@@ -117,10 +114,6 @@
             <div class="modal-body">
                 <input type="hidden" id="e-id">
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Código QR <span class="text-danger">*</span></label>
-                        <input type="text" id="e-qr" class="form-control form-control-sm">
-                    </div>
                     <div class="col-md-6">
                         <label class="form-label">Patrimônio</label>
                         <input type="text" id="e-patrimonio" class="form-control form-control-sm">
@@ -336,7 +329,7 @@
                 <td>${entNome}</td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
-                        <button class="btn-action" onclick="verQr('${d.codigo_qr}')" title="Ver QR Code"><i class="bi bi-qr-code"></i></button>
+                        <button class="btn-action" onclick="verQr('${d.codigo_qr}')" title="Ver QR Code" ${!d.codigo_qr ? 'disabled' : ''}><i class="bi bi-qr-code"></i></button>
                         <button class="btn-action" onclick="abrirMover(${d.id})" title="Mover"><i class="bi bi-arrow-left-right"></i></button>
                         <button class="btn-action" onclick="verHistorico(${d.id})" title="Histórico"><i class="bi bi-clock-history"></i></button>
                         <button class="btn-action" onclick="abrirEdicao(${d.id})" title="Editar"><i class="bi bi-pencil"></i></button>
@@ -375,13 +368,11 @@
     }
 
     async function criar() {
-        const qr   = document.getElementById('f-qr').value.trim();
         const sala = document.getElementById('f-sala').value;
-        if (!qr || !sala) { toast('Código QR e sala são obrigatórios.', 'warn'); return; }
+        if (!sala) { toast('Sala é obrigatória.', 'warn'); return; }
         const res = await authFetch(`${API}/dispositivos/`, {
             method: 'POST',
             body: JSON.stringify({
-                codigo_qr:   qr,
                 patrimonio:  document.getElementById('f-patrimonio').value.trim(),
                 tipo:        document.getElementById('f-tipo').value.trim(),
                 marca:       document.getElementById('f-marca').value.trim(),
@@ -405,7 +396,6 @@
         const d = todosDisp.find(x => x.id === id);
         if (!d) return;
         document.getElementById('e-id').value         = d.id;
-        document.getElementById('e-qr').value         = d.codigo_qr || '';
         document.getElementById('e-patrimonio').value = d.patrimonio || '';
         document.getElementById('e-tipo').value       = d.tipo || '';
         document.getElementById('e-marca').value      = d.marca || '';
@@ -418,13 +408,11 @@
 
     async function salvarEdicao() {
         const id   = document.getElementById('e-id').value;
-        const qr   = document.getElementById('e-qr').value.trim();
         const sala = document.getElementById('e-sala').value;
-        if (!qr || !sala) { toast('Código QR e sala são obrigatórios.', 'warn'); return; }
+        if (!sala) { toast('Sala é obrigatória.', 'warn'); return; }
         const res = await authFetch(`${API}/dispositivos/${id}/`, {
             method: 'PATCH',
             body: JSON.stringify({
-                codigo_qr:   qr,
                 patrimonio:  document.getElementById('e-patrimonio').value.trim(),
                 tipo:        document.getElementById('e-tipo').value.trim(),
                 marca:       document.getElementById('e-marca').value.trim(),
@@ -512,13 +500,14 @@
     }
 
     function verQr(codigo) {
+        const scanUrl = `${window.location.origin}/r/${codigo}/`;
         const wrap = document.getElementById('qr-canvas-wrap');
         wrap.innerHTML = '';
         document.getElementById('qr-codigo-label').textContent = codigo;
         new bootstrap.Modal(document.getElementById('modal-qr')).show();
         document.getElementById('modal-qr').addEventListener('shown.bs.modal', () => {
             wrap.innerHTML = '';
-            QRCode.toDataURL(codigo, { width: 200, margin: 2 }, (err, url) => {
+            QRCode.toDataURL(scanUrl, { width: 200, margin: 2 }, (err, url) => {
                 if (!err) {
                     const img = document.createElement('img');
                     img.src = url;

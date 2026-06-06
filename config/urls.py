@@ -9,7 +9,7 @@ from app.views.pages_view import (
     LoginPageView, AcessoPageView, DashboardPageView, TicketsPageView,
     DispositivosPageView, SalasPageView, EntidadesPageView,
     CategoriasPageView, ModelosPageView, UsuariosPageView, PermissoesPageView,
-    ManutencoesPageView, MeusReportesPageView,
+    ManutencoesPageView, MeusReportesPageView, ReportarDispositivoPageView,
 )
 
 urlpatterns = [
@@ -46,5 +46,6 @@ urlpatterns = [
     path('usuarios/', UsuariosPageView.as_view(), name='usuarios'),
     path('permissoes/', PermissoesPageView.as_view(), name='permissoes'),
     path('manutencoes/', ManutencoesPageView.as_view(), name='manutencoes'),
+    path('r/<str:codigo_qr>/', ReportarDispositivoPageView.as_view(), name='reportar'),
     path('', DashboardPageView.as_view(), name='dashboard'),
 ]

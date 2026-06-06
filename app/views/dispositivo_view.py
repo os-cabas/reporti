@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import transaction
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -38,7 +40,12 @@ class DispositivoViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_create(self, serializer):
-        dispositivo = serializer.save()
+        # Salva com código temporário único para obter o pk
+        dispositivo = serializer.save(codigo_qr=f"_INIT_{uuid.uuid4().hex[:10]}")
+        # Gera o código definitivo: usa patrimônio se preenchido, senão usa o pk
+        patrimonio = (dispositivo.patrimonio or '').strip()
+        dispositivo.codigo_qr = patrimonio if patrimonio else f"DISP-{dispositivo.pk:06d}"
+        dispositivo.save(update_fields=['codigo_qr'])
         HistoricoDispositivo.objects.create(
             dispositivo=dispositivo,
             acao='criacao',
