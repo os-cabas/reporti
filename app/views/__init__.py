@@ -1,0 +1,12 @@
+from .categoria_view import CategoriaViewSet
+from .entidade_view import EntidadeViewSet
+from .permissao_view import PermissaoViewSet
+from .modelo_view import ModeloViewSet
+from .sala_view import SalaViewSet
+from .usuario_view import UsuarioViewSet
+from .dispositivo_view import DispositivoViewSet
+from .usuario_permissao_view import UsuarioPermissaoViewSet
+from .ticket_view import TicketViewSet
+from .manutencao_view import ManutencaoViewSet
+from .dashboard_view import DashboardView
+from .auth_view import GoogleAuthView, MagicLinkSolicitarView, MagicLinkVerificarView

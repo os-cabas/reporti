@@ -1,1 +1,26 @@
 config/settings.py
+.env
+orchestration.md
+.claude
+.vscode
+
+# Python cache
+**/__pycache__/
+*.py[cod]
+*.pyo
+
+# Django
+staticfiles/
+media/
+db.sqlite3
+
+
+# Logs
+logs/*.log
+
+# Virtualenv
+venv/
+.venv/
+env/
+
+docs/

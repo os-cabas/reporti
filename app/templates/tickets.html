@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+
+{% block title %}Tickets — ReporTi{% endblock %}
+{% block nav_tickets %}active{% endblock %}
+{% block page_title %}Tickets{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <div class="toolbar-left">
+        <div class="btn-group filter-group" role="group">
+            <button class="btn btn-outline-secondary active" onclick="filtrar('')" id="f-todos">Todos</button>
+            <button class="btn btn-outline-secondary" onclick="filtrar('aberto')" id="f-aberto">Abertos</button>
+            <button class="btn btn-outline-secondary" onclick="filtrar('em_andamento')" id="f-andamento">Em andamento</button>
+            <button class="btn btn-outline-secondary" onclick="filtrar('fechado')" id="f-fechado">Fechados</button>
+        </div>
+        <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" class="search-input" id="search-tickets" placeholder="Buscar ticket…" oninput="aplicarBusca()">
+        </div>
+    </div>
+    <div class="toolbar-right">
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
+            <i class="bi bi-plus-lg me-1"></i>Novo Ticket
+        </button>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Título</th>
+                <th>Status</th>
+                <th>Dispositivo</th>
+                <th>Criado em</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="tickets-body">
+            <tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal novo ticket -->
+<div class="modal fade" id="modal-novo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Abrir Ticket</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Título <span class="text-danger">*</span></label>
+                    <input type="text" id="f-titulo" class="form-control form-control-sm" placeholder="Descreva brevemente o problema">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea id="f-descricao" class="form-control form-control-sm" rows="3" placeholder="Detalhes adicionais…"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Dispositivo</label>
+                    <select id="f-dispositivo" class="form-select form-select-sm">
+                        <option value="">— Nenhum —</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="criarTicket()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal editar ticket -->
+<div class="modal fade" id="modal-editar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Editar Ticket</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="e-id">
+                <div class="mb-3">
+                    <label class="form-label">Título <span class="text-danger">*</span></label>
+                    <input type="text" id="e-titulo" class="form-control form-control-sm">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea id="e-descricao" class="form-control form-control-sm" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <select id="e-status" class="form-select form-select-sm">
+                        <option value="aberto">Aberto</option>
+                        <option value="em_andamento">Em andamento</option>
+                        <option value="fechado">Fechado</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Dispositivo</label>
+                    <select id="e-dispositivo" class="form-select form-select-sm">
+                        <option value="">— Nenhum —</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="salvarEdicao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let todosTickets = [];
+    let dispositivoMap = {};
+    let filtroAtual = '';
+    let termoBusca = '';
+
+    function statusBadge(s) {
+        const map = { aberto: 'Aberto', em_andamento: 'Em andamento', fechado: 'Fechado' };
+        return `<span class="status-badge badge-${s}">${map[s] || s}</span>`;
+    }
+
+    function renderTabela(lista) {
+        const tbody = document.getElementById('tickets-body');
+        if (!lista.length) {
+            tbody.innerHTML = `<tr><td colspan="6">
+                <div class="empty-state">
+                    <i class="bi bi-ticket empty-state-icon"></i>
+                    <p class="empty-state-title">Nenhum ticket encontrado</p>
+                    <p class="empty-state-sub">Tente mudar os filtros ou crie um novo ticket.</p>
+                </div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = lista.map(t => {
+            const dispNome = t.dispositivo ? (dispositivoMap[t.dispositivo] || `#${t.dispositivo}`) : '—';
+            const acoes = [];
+            if (t.status === 'aberto')
+                acoes.push(`<button class="btn-action btn-action-warn" onclick="mudarStatus(${t.id},'em_andamento')" title="Atender"><i class="bi bi-play-fill"></i></button>`);
+            if (t.status === 'em_andamento')
+                acoes.push(`<button class="btn-action btn-action-success" onclick="mudarStatus(${t.id},'fechado')" title="Fechar"><i class="bi bi-check-lg"></i></button>`);
+            acoes.push(`<button class="btn-action" onclick="abrirEdicao(${t.id})" title="Editar"><i class="bi bi-pencil"></i></button>`);
+            acoes.push(`<button class="btn-action btn-action-danger" onclick="excluir(${t.id})" title="Excluir"><i class="bi bi-trash"></i></button>`);
+            return `<tr>
+                <td class="text-muted fw-medium">#${t.id}</td>
+                <td>
+                    <span class="fw-medium">${t.titulo}</span>
+                    ${t.descricao ? `<br><small class="text-muted" style="font-size:.75rem;">${t.descricao.length > 60 ? t.descricao.slice(0,60)+'…' : t.descricao}</small>` : ''}
+                </td>
+                <td>${statusBadge(t.status)}</td>
+                <td>${dispNome !== '—' ? `<span class="tag-badge"><i class="bi bi-pc-display" style="font-size:.7rem;"></i>${dispNome}</span>` : '<span class="text-muted">—</span>'}</td>
+                <td class="text-muted">${new Date(t.criado_em).toLocaleDateString('pt-BR')}</td>
+                <td>
+                    <div class="d-flex gap-1 justify-content-end">${acoes.join('')}</div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function aplicarBusca() {
+        termoBusca = document.getElementById('search-tickets').value.toLowerCase();
+        aplicarFiltros();
+    }
+
+    function aplicarFiltros() {
+        let lista = filtroAtual ? todosTickets.filter(t => t.status === filtroAtual) : todosTickets;
+        if (termoBusca) lista = lista.filter(t => t.titulo.toLowerCase().includes(termoBusca) || (t.descricao || '').toLowerCase().includes(termoBusca));
+        renderTabela(lista);
+    }
+
+    function filtrar(status) {
+        filtroAtual = status;
+        document.querySelectorAll('.filter-group .btn').forEach(b => b.classList.remove('active'));
+        const ids = { '': 'f-todos', 'aberto': 'f-aberto', 'em_andamento': 'f-andamento', 'fechado': 'f-fechado' };
+        document.getElementById(ids[status])?.classList.add('active');
+        aplicarFiltros();
+    }
+
+    async function carregarDispositivos() {
+        const res = await authFetch(`${API}/dispositivos/`);
+        const data = await res.json();
+        const lista = Array.isArray(data) ? data : (data.results || []);
+
+        const resModelos = await authFetch(`${API}/modelos/`);
+        const modData = await resModelos.json();
+        const modeloMap = Object.fromEntries((Array.isArray(modData) ? modData : modData.results || []).map(m => [m.id, m.nome]));
+
+        lista.forEach(d => {
+            dispositivoMap[d.id] = modeloMap[d.modelo] ? `${modeloMap[d.modelo]} #${d.id}` : `Dispositivo #${d.id}`;
+        });
+
+        ['f-dispositivo', 'e-dispositivo'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">— Nenhum —</option>';
+            lista.forEach(d => { sel.innerHTML += `<option value="${d.id}">${dispositivoMap[d.id]}</option>`; });
+        });
+    }
+
+    async function carregarTickets() {
+        const res = await authFetch(`${API}/tickets/`);
+        const data = await res.json();
+        todosTickets = Array.isArray(data) ? data : (data.results || []);
+        aplicarFiltros();
+    }
+
+    async function criarTicket() {
+        const titulo = document.getElementById('f-titulo').value.trim();
+        if (!titulo) { toast('Informe o título do ticket.', 'warn'); return; }
+        const body = {
+            titulo,
+            descricao: document.getElementById('f-descricao').value,
+            status: 'aberto',
+            usuario: null,
+            dispositivo: document.getElementById('f-dispositivo').value || null,
+        };
+        const res = await authFetch(`${API}/tickets/`, { method: 'POST', body: JSON.stringify(body) });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
+            document.getElementById('f-titulo').value = '';
+            document.getElementById('f-descricao').value = '';
+            document.getElementById('f-dispositivo').value = '';
+            await carregarTickets();
+            toast('Ticket criado com sucesso!', 'success');
+        } else {
+            toast('Erro ao criar ticket. Tente novamente.', 'error');
+        }
+    }
+
+    function abrirEdicao(id) {
+        const t = todosTickets.find(x => x.id === id);
+        if (!t) return;
+        document.getElementById('e-id').value = t.id;
+        document.getElementById('e-titulo').value = t.titulo;
+        document.getElementById('e-descricao').value = t.descricao || '';
+        document.getElementById('e-status').value = t.status;
+        document.getElementById('e-dispositivo').value = t.dispositivo || '';
+        new bootstrap.Modal(document.getElementById('modal-editar')).show();
+    }
+
+    async function salvarEdicao() {
+        const id = document.getElementById('e-id').value;
+        const titulo = document.getElementById('e-titulo').value.trim();
+        if (!titulo) { toast('Informe o título do ticket.', 'warn'); return; }
+        const body = {
+            titulo,
+            descricao: document.getElementById('e-descricao').value,
+            status: document.getElementById('e-status').value,
+            dispositivo: document.getElementById('e-dispositivo').value || null,
+        };
+        const res = await authFetch(`${API}/tickets/${id}/`, { method: 'PATCH', body: JSON.stringify(body) });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-editar')).hide();
+            await carregarTickets();
+            toast('Ticket atualizado.', 'success');
+        } else {
+            toast('Erro ao salvar alterações.', 'error');
+        }
+    }
+
+    async function mudarStatus(id, status) {
+        await authFetch(`${API}/tickets/${id}/`, { method: 'PATCH', body: JSON.stringify({ status }) });
+        await carregarTickets();
+        const labels = { em_andamento: 'Ticket em atendimento.', fechado: 'Ticket fechado.' };
+        toast(labels[status] || 'Status atualizado.', 'success');
+    }
+
+    async function excluir(id) {
+        if (!confirm('Excluir este ticket?')) return;
+        await authFetch(`${API}/tickets/${id}/`, { method: 'DELETE' });
+        await carregarTickets();
+        toast('Ticket excluído.', 'default');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await carregarDispositivos();
+        await carregarTickets();
+    });
+</script>
+{% endblock %}

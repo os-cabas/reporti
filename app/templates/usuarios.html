@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}Usuários — ReporTi{% endblock %}
+{% block nav_usuarios %}active{% endblock %}
+{% block page_title %}Usuários{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <div class="toolbar-left">
+        <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" class="search-input" id="search-usr" placeholder="Buscar usuário…" oninput="aplicarBusca()">
+        </div>
+    </div>
+    <div class="toolbar-right">
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
+            <i class="bi bi-person-plus me-1"></i>Novo Usuário
+        </button>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Username</th>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Cargo</th>
+                <th>Perfil</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="usuarios-body">
+            <tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal novo usuário -->
+<div class="modal fade" id="modal-novo" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Novo Usuário</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                        <input type="text" id="f-username" class="form-control form-control-sm" placeholder="usuario123">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Senha <span class="text-danger">*</span></label>
+                        <input type="password" id="f-password" class="form-control form-control-sm" placeholder="••••••••">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Primeiro nome</label>
+                        <input type="text" id="f-first-name" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Sobrenome</label>
+                        <input type="text" id="f-last-name" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">E-mail</label>
+                        <input type="email" id="f-email" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Cargo</label>
+                        <input type="text" id="f-cargo" class="form-control form-control-sm" placeholder="Ex: Técnico de TI">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="f-is-staff">
+                            <label class="form-check-label small" for="f-is-staff">Staff (acesso administrativo)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="criar()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal editar usuário -->
+<div class="modal fade" id="modal-editar" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Editar Usuário</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="e-id">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                        <input type="text" id="e-username" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Nova senha <span class="text-muted fw-normal">(vazio = manter)</span></label>
+                        <input type="password" id="e-password" class="form-control form-control-sm" placeholder="••••••••">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Primeiro nome</label>
+                        <input type="text" id="e-first-name" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Sobrenome</label>
+                        <input type="text" id="e-last-name" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">E-mail</label>
+                        <input type="email" id="e-email" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Cargo</label>
+                        <input type="text" id="e-cargo" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="e-is-staff">
+                            <label class="form-check-label small" for="e-is-staff">Staff (acesso administrativo)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="salvarEdicao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let todosUsuarios = [];
+    let userRows = [];
+
+    function aplicarBusca() {
+        const termo = document.getElementById('search-usr').value.toLowerCase();
+        const filtrados = termo ? userRows.filter(r => r.termo.includes(termo)) : userRows;
+        renderRows(filtrados);
+    }
+
+    function renderRows(rows) {
+        const tbody = document.getElementById('usuarios-body');
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="7">
+                <div class="empty-state">
+                    <i class="bi bi-people empty-state-icon"></i>
+                    <p class="empty-state-title">Nenhum usuário encontrado</p>
+                    <p class="empty-state-sub">Crie o primeiro usuário do sistema.</p>
+                </div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map(r => r.html).join('');
+    }
+
+    async function carregar() {
+        const res = await authFetch(`${API}/usuarios/`);
+        todosUsuarios = await res.json();
+        const lista = Array.isArray(todosUsuarios) ? todosUsuarios : todosUsuarios.results || [];
+
+        userRows = lista.map(u => {
+            const nome = [u.first_name, u.last_name].filter(Boolean).join(' ') || '—';
+            const staffBadge = u.is_staff
+                ? `<span class="status-badge" style="background:#eff6ff;color:#3b82f6;border-color:#bfdbfe;">Staff</span>`
+                : `<span class="tag-badge">Usuário</span>`;
+            const html = `<tr>
+                <td class="text-muted fw-medium">#${u.id}</td>
+                <td class="fw-medium">${u.username}</td>
+                <td>${nome}</td>
+                <td class="text-muted">${u.email || '—'}</td>
+                <td>${u.cargo || '—'}</td>
+                <td>${staffBadge}</td>
+                <td>
+                    <div class="d-flex gap-1 justify-content-end">
+                        <button class="btn-action" onclick="abrirEdicao(${u.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-action btn-action-danger" onclick="excluir(${u.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+            return { id: u.id, termo: `${u.username} ${nome} ${u.email || ''} ${u.cargo || ''}`.toLowerCase(), html };
+        });
+
+        renderRows(userRows);
+    }
+
+    async function criar() {
+        const username = document.getElementById('f-username').value.trim();
+        const password = document.getElementById('f-password').value;
+        if (!username || !password) { toast('Username e senha são obrigatórios.', 'warn'); return; }
+        const body = {
+            username,
+            password,
+            first_name: document.getElementById('f-first-name').value.trim(),
+            last_name:  document.getElementById('f-last-name').value.trim(),
+            email:      document.getElementById('f-email').value.trim(),
+            cargo:      document.getElementById('f-cargo').value.trim(),
+            is_staff:   document.getElementById('f-is-staff').checked,
+        };
+        const res = await authFetch(`${API}/usuarios/`, { method: 'POST', body: JSON.stringify(body) });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
+            ['f-username','f-password','f-first-name','f-last-name','f-email','f-cargo'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('f-is-staff').checked = false;
+            await carregar();
+            toast('Usuário criado!', 'success');
+        } else {
+            const err = await res.json().catch(() => ({}));
+            const msg = Object.entries(err).map(([k,v]) => `${k}: ${Array.isArray(v) ? v[0] : v}`).join(' | ');
+            toast(`Erro: ${msg || 'Tente novamente.'}`, 'error');
+        }
+    }
+
+    function abrirEdicao(id) {
+        const lista = Array.isArray(todosUsuarios) ? todosUsuarios : todosUsuarios.results || [];
+        const u = lista.find(x => x.id === id);
+        if (!u) return;
+        document.getElementById('e-id').value         = u.id;
+        document.getElementById('e-username').value   = u.username;
+        document.getElementById('e-password').value   = '';
+        document.getElementById('e-first-name').value = u.first_name || '';
+        document.getElementById('e-last-name').value  = u.last_name || '';
+        document.getElementById('e-email').value       = u.email || '';
+        document.getElementById('e-cargo').value       = u.cargo || '';
+        document.getElementById('e-is-staff').checked  = u.is_staff || false;
+        new bootstrap.Modal(document.getElementById('modal-editar')).show();
+    }
+
+    async function salvarEdicao() {
+        const id       = document.getElementById('e-id').value;
+        const username = document.getElementById('e-username').value.trim();
+        if (!username) { toast('Username é obrigatório.', 'warn'); return; }
+        const body = {
+            username,
+            first_name: document.getElementById('e-first-name').value.trim(),
+            last_name:  document.getElementById('e-last-name').value.trim(),
+            email:      document.getElementById('e-email').value.trim(),
+            cargo:      document.getElementById('e-cargo').value.trim(),
+            is_staff:   document.getElementById('e-is-staff').checked,
+        };
+        const senha = document.getElementById('e-password').value;
+        if (senha) body.password = senha;
+
+        const res = await authFetch(`${API}/usuarios/${id}/`, { method: 'PATCH', body: JSON.stringify(body) });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-editar')).hide();
+            await carregar();
+            toast('Usuário atualizado.', 'success');
+        } else {
+            const err = await res.json().catch(() => ({}));
+            const msg = Object.entries(err).map(([k,v]) => `${k}: ${Array.isArray(v) ? v[0] : v}`).join(' | ');
+            toast(`Erro: ${msg || 'Tente novamente.'}`, 'error');
+        }
+    }
+
+    async function excluir(id) {
+        const me    = localStorage.getItem('username');
+        const lista = Array.isArray(todosUsuarios) ? todosUsuarios : todosUsuarios.results || [];
+        const u = lista.find(x => x.id === id);
+        if (u && u.username === me) { toast('Você não pode excluir o próprio usuário.', 'warn'); return; }
+        if (!confirm(`Excluir o usuário "${u?.username}"?`)) return;
+        const res = await authFetch(`${API}/usuarios/${id}/`, { method: 'DELETE' });
+        if (res.ok || res.status === 204) {
+            await carregar();
+            toast('Usuário excluído.', 'default');
+        } else {
+            toast('Não foi possível excluir.', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', carregar);
+</script>
+{% endblock %}

@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+
+{% block title %}Permissões — ReporTi{% endblock %}
+{% block nav_permissoes %}active{% endblock %}
+{% block page_title %}Permissões{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+    <!-- Permissões cadastradas -->
+    <div class="col-md-5">
+        <div class="toolbar" style="margin-bottom:1rem;">
+            <span class="fw-semibold" style="font-size:.875rem;color:var(--text-primary);">Permissões</span>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-nova-perm">
+                <i class="bi bi-plus-lg me-1"></i>Nova
+            </button>
+        </div>
+        <div class="table-card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nome</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="perm-body">
+                    <tr><td colspan="3" class="text-center text-muted py-4">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Atribuições usuário-permissão -->
+    <div class="col-md-7">
+        <div class="toolbar" style="margin-bottom:1rem;">
+            <span class="fw-semibold" style="font-size:.875rem;color:var(--text-primary);">Atribuições</span>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-atribuir">
+                <i class="bi bi-person-plus me-1"></i>Atribuir
+            </button>
+        </div>
+        <div class="table-card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Usuário</th>
+                        <th>Permissão</th>
+                        <th>Atribuído em</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="up-body">
+                    <tr><td colspan="5" class="text-center text-muted py-4">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal nova permissão -->
+<div class="modal fade" id="modal-nova-perm" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Nova Permissão</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nome <span class="text-danger">*</span></label>
+                    <input type="text" id="f-perm-nome" class="form-control form-control-sm" placeholder="Ex: admin, suporte, visualizador">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="criarPermissao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal editar permissão -->
+<div class="modal fade" id="modal-editar-perm" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Editar Permissão</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="e-perm-id">
+                <div class="mb-3">
+                    <label class="form-label">Nome <span class="text-danger">*</span></label>
+                    <input type="text" id="e-perm-nome" class="form-control form-control-sm">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="salvarEdicaoPermissao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal atribuir permissão -->
+<div class="modal fade" id="modal-atribuir" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Atribuir Permissão</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Usuário <span class="text-danger">*</span></label>
+                    <select id="f-up-usuario" class="form-select form-select-sm">
+                        <option value="">Selecione um usuário</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Permissão <span class="text-danger">*</span></label>
+                    <select id="f-up-permissao" class="form-select form-select-sm">
+                        <option value="">Selecione uma permissão</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="atribuir()">Atribuir</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let todasPermissoes = [];
+
+    async function carregar() {
+        const [resPerms, resUPs, resUsers] = await Promise.all([
+            authFetch(`${API}/permissoes/`),
+            authFetch(`${API}/usuario-permissoes/`),
+            authFetch(`${API}/usuarios/`),
+        ]);
+        todasPermissoes  = await resPerms.json();
+        const ups        = await resUPs.json();
+        const usuarios   = await resUsers.json();
+
+        const permArr = Array.isArray(todasPermissoes) ? todasPermissoes : todasPermissoes.results || [];
+        const upArr   = Array.isArray(ups)      ? ups      : ups.results || [];
+        const userArr = Array.isArray(usuarios) ? usuarios : usuarios.results || [];
+
+        const permMap = Object.fromEntries(permArr.map(p => [p.id, p.nome]));
+        const userMap = Object.fromEntries(userArr.map(u => [u.id, u.username]));
+
+        // Render permissões
+        const tbody = document.getElementById('perm-body');
+        if (!permArr.length) {
+            tbody.innerHTML = `<tr><td colspan="3">
+                <div class="empty-state" style="padding:2rem;">
+                    <i class="bi bi-shield empty-state-icon"></i>
+                    <p class="empty-state-title">Sem permissões</p>
+                </div>
+            </td></tr>`;
+        } else {
+            tbody.innerHTML = permArr.map(p => `
+                <tr>
+                    <td class="text-muted fw-medium">#${p.id}</td>
+                    <td class="fw-medium">${p.nome}</td>
+                    <td>
+                        <div class="d-flex gap-1 justify-content-end">
+                            <button class="btn-action" onclick="abrirEdicaoPerm(${p.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                            <button class="btn-action btn-action-danger" onclick="excluirPermissao(${p.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+        }
+
+        // Render atribuições
+        const upTbody = document.getElementById('up-body');
+        if (!upArr.length) {
+            upTbody.innerHTML = `<tr><td colspan="5">
+                <div class="empty-state" style="padding:2rem;">
+                    <i class="bi bi-person-badge empty-state-icon"></i>
+                    <p class="empty-state-title">Sem atribuições</p>
+                </div>
+            </td></tr>`;
+        } else {
+            upTbody.innerHTML = upArr.map(up => `
+                <tr>
+                    <td class="text-muted fw-medium">#${up.id}</td>
+                    <td class="fw-medium">${userMap[up.usuario] || `#${up.usuario}`}</td>
+                    <td><span class="tag-badge"><i class="bi bi-shield-check" style="font-size:.7rem;"></i>${permMap[up.permissao] || `#${up.permissao}`}</span></td>
+                    <td class="text-muted">${up.data ? new Date(up.data).toLocaleDateString('pt-BR') : '—'}</td>
+                    <td>
+                        <div class="d-flex justify-content-end">
+                            <button class="btn-action btn-action-danger" onclick="revogar(${up.id})" title="Revogar"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+        }
+
+        // Preencher selects
+        const selUser = document.getElementById('f-up-usuario');
+        selUser.innerHTML = '<option value="">Selecione um usuário</option>';
+        userArr.forEach(u => { selUser.innerHTML += `<option value="${u.id}">${u.username}</option>`; });
+
+        const selPerm = document.getElementById('f-up-permissao');
+        selPerm.innerHTML = '<option value="">Selecione uma permissão</option>';
+        permArr.forEach(p => { selPerm.innerHTML += `<option value="${p.id}">${p.nome}</option>`; });
+    }
+
+    async function criarPermissao() {
+        const nome = document.getElementById('f-perm-nome').value.trim();
+        if (!nome) { toast('Informe o nome da permissão.', 'warn'); return; }
+        const res = await authFetch(`${API}/permissoes/`, { method: 'POST', body: JSON.stringify({ nome }) });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-nova-perm')).hide();
+            document.getElementById('f-perm-nome').value = '';
+            await carregar();
+            toast('Permissão criada!', 'success');
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast(err.nome ? `Erro: ${err.nome[0]}` : 'Erro ao criar permissão.', 'error');
+        }
+    }
+
+    function abrirEdicaoPerm(id) {
+        const permArr = Array.isArray(todasPermissoes) ? todasPermissoes : todasPermissoes.results || [];
+        const p = permArr.find(x => x.id === id);
+        if (!p) return;
+        document.getElementById('e-perm-id').value   = p.id;
+        document.getElementById('e-perm-nome').value = p.nome;
+        new bootstrap.Modal(document.getElementById('modal-editar-perm')).show();
+    }
+
+    async function salvarEdicaoPermissao() {
+        const id   = document.getElementById('e-perm-id').value;
+        const nome = document.getElementById('e-perm-nome').value.trim();
+        if (!nome) { toast('Informe o nome da permissão.', 'warn'); return; }
+        const res = await authFetch(`${API}/permissoes/${id}/`, { method: 'PATCH', body: JSON.stringify({ nome }) });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-editar-perm')).hide();
+            await carregar();
+            toast('Permissão atualizada.', 'success');
+        } else {
+            toast('Erro ao salvar alterações.', 'error');
+        }
+    }
+
+    async function excluirPermissao(id) {
+        if (!confirm('Excluir esta permissão? As atribuições vinculadas serão removidas.')) return;
+        const res = await authFetch(`${API}/permissoes/${id}/`, { method: 'DELETE' });
+        if (res.ok || res.status === 204) {
+            await carregar();
+            toast('Permissão excluída.', 'default');
+        } else {
+            toast('Não foi possível excluir.', 'error');
+        }
+    }
+
+    async function atribuir() {
+        const usuario   = document.getElementById('f-up-usuario').value;
+        const permissao = document.getElementById('f-up-permissao').value;
+        if (!usuario || !permissao) { toast('Selecione usuário e permissão.', 'warn'); return; }
+        const res = await authFetch(`${API}/usuario-permissoes/`, {
+            method: 'POST',
+            body: JSON.stringify({ usuario: parseInt(usuario), permissao: parseInt(permissao) }),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-atribuir')).hide();
+            await carregar();
+            toast('Permissão atribuída!', 'success');
+        } else {
+            const err = await res.json().catch(() => ({}));
+            const msg = err.non_field_errors ? err.non_field_errors[0] : 'Erro ao atribuir permissão.';
+            toast(msg, 'error');
+        }
+    }
+
+    async function revogar(id) {
+        if (!confirm('Revogar esta atribuição?')) return;
+        const res = await authFetch(`${API}/usuario-permissoes/${id}/`, { method: 'DELETE' });
+        if (res.ok || res.status === 204) {
+            await carregar();
+            toast('Atribuição revogada.', 'default');
+        } else {
+            toast('Não foi possível revogar.', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', carregar);
+</script>
+{% endblock %}
