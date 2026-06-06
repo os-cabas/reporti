@@ -72,6 +72,9 @@
                     Entrar com Google
                 </button>
             </div>
+            <div class="alert alert-warning py-2 px-3 mb-3" id="google-erro" style="display:none;font-size:.8125rem;">
+                <i class="bi bi-exclamation-triangle me-1"></i><span id="google-erro-msg"></span>
+            </div>
 
             <div class="d-flex align-items-center gap-2 mb-3">
                 <hr class="flex-grow-1 m-0">
@@ -96,7 +99,7 @@
 
             <!-- Magic Link — passo 2: inserir token -->
             <div id="magic-step2" style="display:none;">
-                <div class="alert alert-success py-2 px-3 mb-3" style="font-size:.8125rem;">
+                <div class="alert alert-success py-2 px-3 mb-3" id="magic-step2-aviso" style="font-size:.8125rem;">
                     <i class="bi bi-envelope-check me-1"></i>Link enviado! Cole o token do e-mail abaixo.
                 </div>
                 <div class="mb-3">
@@ -175,8 +178,10 @@
     }
 
     let googleReady = false;
+    let googleBtnHtml = '';
 
     function agendarInicioGoogle() {
+        if (!googleBtnHtml) googleBtnHtml = document.getElementById('btn-google').innerHTML;
         if (window.google) inicializarGoogle();
     }
 
@@ -186,17 +191,44 @@
         google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
     }
 
+    function resetarBtnGoogle() {
+        const btn = document.getElementById('btn-google');
+        btn.disabled = false;
+        btn.innerHTML = googleBtnHtml;
+    }
+
+    function mostrarErroGoogle(msg) {
+        resetarBtnGoogle();
+        document.getElementById('google-erro-msg').textContent = msg;
+        document.getElementById('google-erro').style.display = 'block';
+    }
+
     function loginGoogle() {
-        if (!GOOGLE_CLIENT_ID) { alert('Google OAuth não configurado neste ambiente.'); return; }
-        if (!window.google)    { alert('Biblioteca do Google não carregada. Verifique sua conexão.'); return; }
+        if (!GOOGLE_CLIENT_ID) { mostrarErroGoogle('Google OAuth não configurado neste ambiente.'); return; }
+        if (!window.google)    { mostrarErroGoogle('Biblioteca do Google não carregada. Verifique sua conexão.'); return; }
         inicializarGoogle();
-        google.accounts.id.prompt();
+        document.getElementById('google-erro').style.display = 'none';
+        const btn = document.getElementById('btn-google');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Aguardando…';
+        google.accounts.id.prompt(notif => {
+            if (notif.isNotDisplayed()) {
+                const motivo = notif.getNotDisplayedReason();
+                const msg = motivo === 'unregistered_origin'
+                    ? 'Domínio não autorizado. Adicione http://127.0.0.1:8000 nas Origens JavaScript autorizadas no Google Cloud Console.'
+                    : `Login com Google indisponível (${motivo}).`;
+                mostrarErroGoogle(msg);
+            } else if (notif.isDismissedMoment() || notif.isSkippedMoment()) {
+                resetarBtnGoogle();
+            }
+        });
     }
 
     async function handleGoogleCredential(response) {
         const btn = document.getElementById('btn-google');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verificando…';
+        document.getElementById('google-erro').style.display = 'none';
 
         const res = await fetch('/api/auth/google/', {
             method: 'POST',
@@ -208,9 +240,7 @@
             salvarSessao(await res.json());
         } else {
             const data = await res.json().catch(() => ({}));
-            alert(data.detail || data.error || 'Falha na autenticação com Google.');
-            btn.disabled = false;
-            btn.innerHTML = 'Entrar com Google';
+            mostrarErroGoogle(data.erro || data.detail || 'Falha na autenticação com Google.');
         }
     }
 
@@ -231,8 +261,19 @@
         });
 
         if (res.ok) {
+            const data = await res.json();
             document.getElementById('magic-step1').style.display = 'none';
             document.getElementById('magic-step2').style.display = '';
+            if (data.debug_link) {
+                try {
+                    const debugToken = new URL(data.debug_link).searchParams.get('token');
+                    if (debugToken) {
+                        document.getElementById('magic-token').value = debugToken;
+                        document.getElementById('magic-step2-aviso').innerHTML =
+                            '<i class="bi bi-bug me-1"></i>Modo desenvolvimento: token preenchido automaticamente.';
+                    }
+                } catch {}
+            }
             document.getElementById('magic-token').focus();
         } else {
             const data = await res.json().catch(() => ({}));

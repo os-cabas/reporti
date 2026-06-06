@@ -128,7 +128,10 @@ class MagicLinkSolicitarView(APIView):
             fail_silently=False,
         )
 
-        return Response({'mensagem': 'Link enviado para o e-mail informado.'})
+        resposta = {'mensagem': 'Link enviado para o e-mail informado.'}
+        if settings.DEBUG:
+            resposta['debug_link'] = link
+        return Response(resposta)
 
 
 class MagicLinkVerificarView(APIView):
