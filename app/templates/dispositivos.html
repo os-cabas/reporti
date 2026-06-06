@@ -499,23 +499,26 @@
         else toast('Não foi possível excluir.', 'error');
     }
 
-    function verQr(codigo) {
-        const scanUrl = `${window.location.origin}/r/${codigo}/`;
+    async function verQr(codigo) {
         const wrap = document.getElementById('qr-canvas-wrap');
-        wrap.innerHTML = '';
+        wrap.innerHTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
         document.getElementById('qr-codigo-label').textContent = codigo;
         new bootstrap.Modal(document.getElementById('modal-qr')).show();
-        document.getElementById('modal-qr').addEventListener('shown.bs.modal', () => {
+
+        const token = localStorage.getItem('access');
+        const res = await fetch(`/api/dispositivos/qr-image/?codigo=${encodeURIComponent(codigo)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const img = document.createElement('img');
+            img.src = data.image;
+            img.style.cssText = 'width:200px;height:200px;border-radius:8px;';
             wrap.innerHTML = '';
-            QRCode.toDataURL(scanUrl, { width: 200, margin: 2 }, (err, url) => {
-                if (!err) {
-                    const img = document.createElement('img');
-                    img.src = url;
-                    img.style.cssText = 'width:200px;height:200px;border-radius:8px;';
-                    wrap.appendChild(img);
-                }
-            });
-        }, { once: true });
+            wrap.appendChild(img);
+        } else {
+            wrap.innerHTML = '<span class="text-danger small">Erro ao gerar QR Code</span>';
+        }
     }
 
     function imprimirQr() {
@@ -534,5 +537,4 @@
 
     document.addEventListener('DOMContentLoaded', carregar);
 </script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 {% endblock %}

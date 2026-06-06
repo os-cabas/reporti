@@ -1,5 +1,8 @@
+import base64
+import io
 import uuid
 
+import qrcode
 from django.db import transaction
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -124,6 +127,26 @@ class DispositivoViewSet(viewsets.ModelViewSet):
         dispositivo = self.get_object()
         qs = dispositivo.historico.select_related('usuario').all()
         return Response(HistoricoDispositivoSerializer(qs, many=True).data)
+
+    # ── Geração de imagem QR Code ────────────────────────────────────────────
+
+    @action(detail=False, methods=['get'], url_path='qr-image',
+            permission_classes=[permissions.IsAuthenticated])
+    def qr_image(self, request):
+        codigo = request.query_params.get('codigo', '').strip()
+        if not codigo:
+            return Response({'erro': 'Parâmetro codigo é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        scan_url = f"{request.scheme}://{request.get_host()}/r/{codigo}/"
+        qr = qrcode.QRCode(box_size=8, border=2)
+        qr.add_data(scan_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        return Response({'image': f'data:image/png;base64,{b64}', 'url': scan_url})
 
     # ── RF009 / RN001: buscar por código QR (acesso de qualquer perfil) ──────
 
