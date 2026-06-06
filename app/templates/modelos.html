@@ -230,7 +230,7 @@
     }
 
     async function excluir(id) {
-        if (!confirm('Excluir este modelo?')) return;
+        if (!await confirmar('Excluir este modelo?')) return;
         const res = await authFetch(`${API}/modelos/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) {
             await carregar();

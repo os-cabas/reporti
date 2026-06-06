@@ -352,7 +352,6 @@
         });
     }
 
-    // ── Criar ──────────────────────────────────────────────────────────────────
     async function criar() {
         const qr   = document.getElementById('f-qr').value.trim();
         const sala = document.getElementById('f-sala').value;
@@ -380,7 +379,6 @@
         }
     }
 
-    // ── Editar ─────────────────────────────────────────────────────────────────
     function abrirEdicao(id) {
         const d = todosDisp.find(x => x.id === id);
         if (!d) return;
@@ -424,7 +422,6 @@
         }
     }
 
-    // ── Mover ──────────────────────────────────────────────────────────────────
     function abrirMover(id) {
         document.getElementById('mover-id').value       = id;
         document.getElementById('mover-descricao').value = '';
@@ -454,7 +451,6 @@
         }
     }
 
-    // ── Histórico ──────────────────────────────────────────────────────────────
     async function verHistorico(id) {
         document.getElementById('historico-lista').innerHTML = '<p class="text-muted text-center py-3">Carregando…</p>';
         new bootstrap.Modal(document.getElementById('modal-historico')).show();
@@ -486,9 +482,8 @@
             </div>`).join('');
     }
 
-    // ── Excluir ────────────────────────────────────────────────────────────────
     async function excluir(id) {
-        if (!confirm('Excluir este dispositivo?')) return;
+        if (!await confirmar('Excluir este dispositivo?')) return;
         const res = await authFetch(`${API}/dispositivos/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) { await carregar(); toast('Dispositivo excluído.', 'default'); }
         else toast('Não foi possível excluir.', 'error');

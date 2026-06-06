@@ -259,7 +259,7 @@
     }
 
     async function excluir(id) {
-        if (!confirm('Excluir esta sala? Dispositivos vinculados perderão a referência.')) return;
+        if (!await confirmar('Excluir esta sala? Dispositivos vinculados perderão a referência.')) return;
         const res = await authFetch(`${API}/salas/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) { await carregar(); toast('Sala excluída.', 'default'); }
         else toast('Não foi possível excluir.', 'error');

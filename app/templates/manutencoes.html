@@ -289,7 +289,6 @@
         });
     }
 
-    // ── Criar ──────────────────────────────────────────────────────────────────
     async function criar() {
         const disp    = document.getElementById('f-dispositivo').value;
         const tecnico = document.getElementById('f-tecnico').value;
@@ -322,7 +321,6 @@
         }
     }
 
-    // ── Editar ─────────────────────────────────────────────────────────────────
     function abrirEdicao(id) {
         const m = todasManut.find(x => x.id === id);
         if (!m) return;
@@ -368,9 +366,8 @@
         }
     }
 
-    // ── Excluir ────────────────────────────────────────────────────────────────
     async function excluir(id) {
-        if (!confirm('Excluir este registro de manutenção?')) return;
+        if (!await confirmar('Excluir este registro de manutenção?')) return;
         const res = await authFetch(`${API}/manutencoes/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) { await carregar(); toast('Registro excluído.', 'default'); }
         else toast('Não foi possível excluir.', 'error');

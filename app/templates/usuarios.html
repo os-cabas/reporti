@@ -305,7 +305,7 @@
         const meEmail = getUsuario().email;
         const u = todosUsuarios.find(x => x.id === id);
         if (u && u.email === meEmail) { toast('Você não pode excluir a própria conta.', 'warn'); return; }
-        if (!confirm(`Excluir o usuário "${u?.email}"?`)) return;
+        if (!await confirmar(`Excluir o usuário "${u?.email}"?`)) return;
         const res = await authFetch(`${API}/usuarios/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) { await carregar(); toast('Usuário excluído.', 'default'); }
         else toast('Não foi possível excluir.', 'error');

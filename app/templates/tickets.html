@@ -267,7 +267,6 @@
             tecnicoMap[u.id] = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : u.email;
         });
 
-        // Popula selects de dispositivos
         ['f-dispositivo', 'e-dispositivo'].forEach(selId => {
             const sel = document.getElementById(selId);
             sel.innerHTML = '<option value="">— Nenhum —</option>';
@@ -278,7 +277,6 @@
         aplicarFiltros();
     }
 
-    // ── Criar ──────────────────────────────────────────────────────────────────
     async function criarTicket() {
         const titulo = document.getElementById('f-titulo').value.trim();
         if (!titulo) { toast('Informe o título do ticket.', 'warn'); return; }
@@ -302,7 +300,6 @@
         }
     }
 
-    // ── Editar ─────────────────────────────────────────────────────────────────
     function abrirEdicao(id) {
         const t = todosTickets.find(x => x.id === id);
         if (!t) return;
@@ -334,7 +331,6 @@
         }
     }
 
-    // ── Ações de status ────────────────────────────────────────────────────────
     async function assumir(id) {
         const res = await authFetch(`${API}/tickets/${id}/assumir/`, { method: 'POST', body: '{}' });
         if (res.ok) { await carregar(); toast('Ticket assumido!', 'success'); }
@@ -374,7 +370,6 @@
         }
     }
 
-    // ── Histórico ──────────────────────────────────────────────────────────────
     async function verHistorico(id) {
         document.getElementById('historico-lista').innerHTML = '<p class="text-muted text-center py-3">Carregando…</p>';
         new bootstrap.Modal(document.getElementById('modal-historico')).show();
@@ -407,9 +402,8 @@
             </div>`).join('');
     }
 
-    // ── Excluir ────────────────────────────────────────────────────────────────
     async function excluir(id) {
-        if (!confirm('Excluir este ticket?')) return;
+        if (!await confirmar('Excluir este ticket?')) return;
         const res = await authFetch(`${API}/tickets/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) { await carregar(); toast('Ticket excluído.', 'default'); }
         else toast('Não foi possível excluir.', 'error');

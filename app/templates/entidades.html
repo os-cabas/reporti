@@ -264,7 +264,7 @@
     }
 
     async function excluir(id) {
-        if (!confirm('Excluir esta entidade? As salas vinculadas serão removidas em cascata.')) return;
+        if (!await confirmar('Excluir esta entidade? As salas vinculadas serão removidas em cascata.')) return;
         const res = await authFetch(`${API}/entidades/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) { await carregar(); toast('Entidade excluída.', 'default'); }
         else toast('Não foi possível excluir. Verifique dependências.', 'error');

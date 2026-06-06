@@ -135,7 +135,6 @@
         window.location.href = '/';
     }
 
-    // ── Abas ─────────────────────────────────────────────────────────────────
     function mudarAba(aba) {
         document.getElementById('painel-admin').style.display = aba === 'admin' ? '' : 'none';
         document.getElementById('painel-comum').style.display = aba === 'comum' ? '' : 'none';
@@ -145,7 +144,6 @@
         if (aba === 'comum') agendarInicioGoogle();
     }
 
-    // ── Admin / Técnico: email + senha ────────────────────────────────────────
     async function loginAdmin(e) {
         e.preventDefault();
         const btn  = document.getElementById('btn-admin');
@@ -176,7 +174,6 @@
         }
     }
 
-    // ── Google OAuth ──────────────────────────────────────────────────────────
     let googleReady = false;
 
     function agendarInicioGoogle() {
@@ -217,7 +214,6 @@
         }
     }
 
-    // ── Magic Link ────────────────────────────────────────────────────────────
     async function enviarMagicLink() {
         const email = document.getElementById('magic-email').value.trim();
         if (!email) { document.getElementById('magic-email').focus(); return; }

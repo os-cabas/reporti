@@ -91,6 +91,24 @@
     </main>
 </div>
 
+<!-- Modal: Confirmação global -->
+<div class="modal fade" id="modal-confirmar" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-1">
+                <h6 class="modal-title" id="confirmar-titulo">Confirmar</h6>
+            </div>
+            <div class="modal-body pt-1">
+                <p class="mb-0 text-secondary" id="confirmar-msg" style="font-size:.875rem;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-danger" id="confirmar-ok">Excluir</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="toast-stack" id="toast-stack"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -145,6 +163,24 @@
             el.style.animation = 'toast-slide-out .25s ease forwards';
             el.addEventListener('animationend', () => el.remove(), { once: true });
         }, duration);
+    }
+
+    function confirmar(mensagem, { titulo = 'Confirmar exclusão', btnTexto = 'Excluir', btnClasse = 'btn-danger' } = {}) {
+        return new Promise(resolve => {
+            const modalEl = document.getElementById('modal-confirmar');
+            document.getElementById('confirmar-msg').textContent    = mensagem;
+            document.getElementById('confirmar-titulo').textContent = titulo;
+            const btnOk = document.getElementById('confirmar-ok');
+            btnOk.textContent = btnTexto;
+            btnOk.className   = `btn btn-sm ${btnClasse}`;
+
+            let confirmado = false;
+            btnOk.onclick = () => { confirmado = true; modal.hide(); };
+            modalEl.addEventListener('hidden.bs.modal', () => resolve(confirmado), { once: true });
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
