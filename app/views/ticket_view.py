@@ -1,7 +1,7 @@
 from django.db import transaction
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from app.models.historico_ticket import HistoricoTicket
@@ -55,6 +55,9 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_create(self, serializer):
+        dispositivo = serializer.validated_data.get('dispositivo')
+        if dispositivo and dispositivo.situacao == 'descartado':
+            raise ValidationError({'dispositivo': 'Equipamento descartado não pode receber novos chamados.'})
         ticket = serializer.save(usuario=self.request.user)
         HistoricoTicket.objects.create(
             ticket=ticket, acao='aberto',

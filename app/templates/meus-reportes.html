@@ -1,0 +1,503 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#2563EB">
+    <title>Meus Reportes — ReporTi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0; font-family: 'Inter', sans-serif;
+            background: #F0F5FF; min-height: 100dvh;
+            display: flex; flex-direction: column;
+        }
+
+        /* ── Top bar ──────────────────────────── */
+        .topbar {
+            background: #fff; border-bottom: 1px solid #E2E8F0;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: .875rem 1.25rem;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-brand { display: flex; align-items: center; gap: .5rem; font-weight: 800; font-size: 1.125rem; color: #1E293B; }
+        .topbar-brand i { color: #2563EB; font-size: 1.25rem; }
+        .topbar-actions { display: flex; align-items: center; gap: .5rem; }
+        .topbar-user { font-size: .8125rem; font-weight: 600; color: #475569; }
+        .btn-icon { background: none; border: none; color: #64748B; font-size: 1.125rem; cursor: pointer; padding: .375rem; border-radius: 8px; }
+        .btn-icon:hover { background: #F1F5F9; }
+
+        /* ── Content ──────────────────────────── */
+        .content { flex: 1; padding: 1.25rem; max-width: 600px; width: 100%; margin: 0 auto; padding-bottom: 6rem; }
+        .page-title { font-size: 1.25rem; font-weight: 700; color: #1E293B; margin: 0 0 1rem; }
+
+        /* ── Ticket card ──────────────────────── */
+        .ticket-card {
+            background: #fff; border: 1px solid #E2E8F0; border-radius: 14px;
+            padding: 1rem 1.125rem; margin-bottom: .75rem;
+            display: flex; gap: .875rem; align-items: flex-start;
+        }
+        .ticket-status-bar { width: 4px; border-radius: 4px; flex-shrink: 0; align-self: stretch; min-height: 40px; }
+        .ticket-body { flex: 1; min-width: 0; }
+        .ticket-titulo { font-size: .9375rem; font-weight: 600; color: #1E293B; margin: 0 0 .25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ticket-meta { font-size: .78rem; color: #64748B; display: flex; flex-wrap: wrap; gap: .5rem; }
+        .status-pill { display: inline-flex; align-items: center; padding: .15rem .5rem; border-radius: 99px; font-size: .72rem; font-weight: 600; }
+
+        /* ── Empty state ──────────────────────── */
+        .empty { text-align: center; padding: 3rem 1rem; }
+        .empty i { font-size: 2.5rem; color: #CBD5E1; display: block; margin-bottom: .75rem; }
+        .empty-title { font-size: 1rem; font-weight: 600; color: #94A3B8; margin: 0 0 .25rem; }
+        .empty-sub { font-size: .875rem; color: #B0BBCB; margin: 0; }
+
+        /* ── Bottom FAB ───────────────────────── */
+        .bottom-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(to top, #F0F5FF 60%, transparent);
+            pointer-events: none;
+        }
+        .btn-fab {
+            width: 100%; max-width: 600px; display: flex; margin: 0 auto;
+            align-items: center; justify-content: center; gap: .5rem;
+            padding: .9375rem 1.25rem; border: none; border-radius: 14px;
+            background: #2563EB; color: #fff;
+            font-family: 'Inter', sans-serif; font-size: 1rem; font-weight: 700;
+            cursor: pointer; pointer-events: all;
+            box-shadow: 0 4px 16px rgba(37,99,235,.35);
+            transition: background .15s, transform .1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-fab:active { transform: scale(.97); }
+
+        /* ── Backdrop ─────────────────────────── */
+        .backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,.45);
+            z-index: 200; display: none; cursor: pointer;
+        }
+        .backdrop.open { display: block; }
+
+        /* ── Bottom sheet ─────────────────────── */
+        .sheet {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
+            background: #fff; border-radius: 20px 20px 0 0;
+            padding: 1.25rem 1.375rem 1.75rem;
+            max-height: 92dvh; overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform .3s cubic-bezier(.32,.72,0,1);
+        }
+        .sheet.open { transform: translateY(0); }
+        .sheet-handle { width: 40px; height: 4px; background: #E2E8F0; border-radius: 2px; margin: 0 auto 1.25rem; }
+        .sheet-title { font-size: 1.125rem; font-weight: 700; color: #1E293B; margin: 0 0 1.25rem; }
+
+        /* ── Form fields ──────────────────────── */
+        .field-label { display: block; font-size: .8125rem; font-weight: 600; color: #475569; margin-bottom: .375rem; }
+        .input-field {
+            width: 100%; padding: .8125rem 1rem;
+            border: 1.5px solid #D1D9E6; border-radius: 12px;
+            font-family: 'Inter', sans-serif; font-size: 1rem;
+            color: #1E293B; background: #fff; outline: none;
+            transition: border-color .15s;
+            -webkit-appearance: none; appearance: none;
+        }
+        .input-field:focus { border-color: #3B82F6; }
+        .input-field::placeholder { color: #9FAABC; }
+        textarea.input-field { resize: vertical; min-height: 90px; }
+
+        .input-with-action { display: flex; gap: .5rem; }
+        .input-with-action .input-field { flex: 1; }
+        .btn-scan {
+            flex-shrink: 0; padding: 0 .875rem;
+            border: 1.5px solid #D1D9E6; border-radius: 12px;
+            background: #fff; color: #2563EB; font-size: 1.25rem;
+            cursor: pointer; display: flex; align-items: center;
+            transition: background .15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-scan:hover { background: #EFF6FF; border-color: #BFDBFE; }
+
+        /* ── Device preview card ──────────────── */
+        .device-card {
+            background: #F8FAFF; border: 1.5px solid #BFDBFE;
+            border-radius: 12px; padding: .875rem 1rem;
+            margin-top: .625rem; display: none;
+        }
+        .device-card.show { display: block; }
+        .device-name { font-size: .9375rem; font-weight: 600; color: #1E293B; margin: 0 0 .25rem; }
+        .device-detail { font-size: .8125rem; color: #64748B; margin: 0; }
+
+        /* ── Errors ───────────────────────────── */
+        .alert-erro {
+            background: #FEF2F2; border: 1px solid #FECACA;
+            border-radius: 10px; color: #DC2626;
+            padding: .625rem .875rem; font-size: .875rem;
+            margin-top: .5rem; display: none;
+        }
+
+        /* ── Primary button ───────────────────── */
+        .btn-primary {
+            width: 100%; padding: .9375rem 1.25rem;
+            border: none; border-radius: 14px; background: #2563EB;
+            font-family: 'Inter', sans-serif; font-size: 1rem; font-weight: 600; color: #fff;
+            display: flex; align-items: center; justify-content: center; gap: .5rem;
+            cursor: pointer; margin-top: .875rem;
+            transition: background .15s; -webkit-tap-highlight-color: transparent;
+        }
+        .btn-primary:hover { background: #1D4ED8; }
+        .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+        .btn-link-sm { background: none; border: none; color: #64748B; font-family: 'Inter', sans-serif; font-size: .875rem; cursor: pointer; padding: .5rem 0; }
+
+        /* ── Spinner ──────────────────────────── */
+        .spin { width: 18px; height: 18px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: rot .65s linear infinite; flex-shrink: 0; }
+        @keyframes rot { to { transform: rotate(360deg); } }
+
+        /* ── Scanner overlay ──────────────────── */
+        .scanner-overlay {
+            position: fixed; inset: 0; z-index: 500;
+            background: #000; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .scanner-overlay.open { display: flex; }
+        #qr-reader { width: 100%; max-width: 400px; }
+        #qr-reader video { border-radius: 0 !important; }
+        .scanner-hint { color: rgba(255,255,255,.7); font-size: .875rem; margin-top: 1rem; text-align: center; padding: 0 1.5rem; }
+        .btn-cancel-scan {
+            margin-top: 2rem; padding: .75rem 2rem;
+            background: rgba(255,255,255,.12); border: 1.5px solid rgba(255,255,255,.25);
+            border-radius: 12px; color: #fff;
+            font-family: 'Inter', sans-serif; font-size: .9375rem; font-weight: 600;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+        }
+
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .bottom-bar { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
+            .sheet { padding-bottom: calc(1.75rem + env(safe-area-inset-bottom)); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Top bar ─────────────────────────────────────────────────────────────── -->
+<header class="topbar">
+    <div class="topbar-brand">
+        <i class="bi bi-ticket-fill"></i>ReporTi
+    </div>
+    <div class="topbar-actions">
+        <span class="topbar-user" id="user-nome"></span>
+        <button class="btn-icon" onclick="logout()" title="Sair"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+</header>
+
+<!-- ── Ticket list ─────────────────────────────────────────────────────────── -->
+<div class="content">
+    <p class="page-title">Meus Reportes</p>
+    <div id="ticket-list">
+        <div class="empty">
+            <i class="bi bi-hourglass-split"></i>
+            <p class="empty-title">Carregando…</p>
+        </div>
+    </div>
+</div>
+
+<!-- ── FAB ────────────────────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+    <button class="btn-fab" onclick="abrirSheet()">
+        <i class="bi bi-plus-lg"></i>Abrir Reporte
+    </button>
+</div>
+
+<!-- ── Backdrop ───────────────────────────────────────────────────────────── -->
+<div class="backdrop" id="backdrop" onclick="fecharSheet()"></div>
+
+<!-- ── Bottom sheet: Novo Reporte ─────────────────────────────────────────── -->
+<div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <p class="sheet-title">Novo Reporte</p>
+
+    <!-- Passo 1: encontrar dispositivo -->
+    <div id="passo-device">
+        <label class="field-label" for="device-code">Código do equipamento</label>
+        <div class="input-with-action">
+            <input type="text" id="device-code" class="input-field"
+                   placeholder="Ex: QR-2024-001"
+                   autocomplete="off" autocapitalize="off" spellcheck="false">
+            <button class="btn-scan" onclick="abrirScanner()" title="Escanear QR">
+                <i class="bi bi-qr-code-scan"></i>
+            </button>
+        </div>
+        <div class="alert-erro" id="device-erro"></div>
+        <div class="device-card" id="device-preview">
+            <p class="device-name" id="device-nome"></p>
+            <p class="device-detail" id="device-info"></p>
+        </div>
+        <button class="btn-primary" id="btn-buscar" onclick="buscarDispositivo()">
+            Buscar Equipamento
+        </button>
+    </div>
+
+    <!-- Passo 2: detalhes do chamado -->
+    <div id="passo-ticket" style="display:none;">
+        <div style="margin-bottom:.875rem;">
+            <label class="field-label" for="ticket-titulo">Título do problema <span style="color:#DC2626;">*</span></label>
+            <input type="text" id="ticket-titulo" class="input-field" placeholder="Descreva brevemente o problema" maxlength="200">
+        </div>
+        <div style="margin-bottom:.875rem;">
+            <label class="field-label" for="ticket-descricao">Descrição</label>
+            <textarea id="ticket-descricao" class="input-field" placeholder="Detalhe o que está acontecendo…"></textarea>
+        </div>
+        <div class="alert-erro" id="ticket-erro"></div>
+        <button class="btn-primary" id="btn-enviar" onclick="enviarReporte()">
+            <i class="bi bi-send"></i>Enviar Reporte
+        </button>
+        <button class="btn-link-sm" onclick="voltarPasso1()" style="display:block;text-align:center;width:100%;margin-top:.5rem;">
+            <i class="bi bi-arrow-left me-1"></i>Trocar equipamento
+        </button>
+    </div>
+</div>
+
+<!-- ── Scanner overlay ─────────────────────────────────────────────────────── -->
+<div class="scanner-overlay" id="scanner-overlay">
+    <div id="qr-reader"></div>
+    <p class="scanner-hint"><i class="bi bi-qr-code me-1"></i>Aponte a câmera para o QR Code do equipamento</p>
+    <button class="btn-cancel-scan" onclick="fecharScanner()">Cancelar</button>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+    const API = '/api';
+    let dispositivoAtual = null;
+    let qrScanner = null;
+
+    function getToken()   { return localStorage.getItem('access'); }
+    function getUsuario() { try { return JSON.parse(localStorage.getItem('usuario') || '{}'); } catch { return {}; } }
+
+    function authFetch(url, opts = {}) {
+        return fetch(url, {
+            ...opts,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}`, ...(opts.headers || {}) },
+        });
+    }
+
+    function logout() { localStorage.clear(); window.location.href = '/acesso/'; }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!getToken()) { window.location.href = '/acesso/'; return; }
+        const u = getUsuario();
+        document.getElementById('user-nome').textContent = (u.nome || u.email || '').split(' ')[0];
+        carregarTickets();
+    });
+
+    // ── Status helpers ────────────────────────────────────────────────────────
+
+    const STATUS_INFO = {
+        aberto:      { label: 'Aberto',       cor: '#DC2626', bg: '#FEF2F2', barra: '#DC2626' },
+        assumido:    { label: 'Assumido',      cor: '#D97706', bg: '#FFFBEB', barra: '#D97706' },
+        em_andamento:{ label: 'Em andamento',  cor: '#2563EB', bg: '#EFF6FF', barra: '#2563EB' },
+        resolvido:   { label: 'Resolvido',     cor: '#16A34A', bg: '#F0FDF4', barra: '#16A34A' },
+        encerrado:   { label: 'Encerrado',     cor: '#64748B', bg: '#F1F5F9', barra: '#CBD5E1' },
+    };
+
+    function statusPill(s) {
+        const { label, cor, bg } = STATUS_INFO[s] || { label: s, cor: '#64748B', bg: '#F1F5F9' };
+        return `<span class="status-pill" style="background:${bg};color:${cor};">${label}</span>`;
+    }
+
+    function fmtData(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    // ── Carregar tickets ──────────────────────────────────────────────────────
+
+    async function carregarTickets() {
+        const res = await authFetch(`${API}/tickets/`);
+        if (!res.ok) { if (res.status === 401) logout(); return; }
+        const data = await res.json();
+        const tickets = Array.isArray(data) ? data : (data.results || []);
+        const lista = document.getElementById('ticket-list');
+        if (!tickets.length) {
+            lista.innerHTML = `
+                <div class="empty">
+                    <i class="bi bi-inbox"></i>
+                    <p class="empty-title">Nenhum reporte ainda</p>
+                    <p class="empty-sub">Toque em "Abrir Reporte" para registrar um problema.</p>
+                </div>`;
+            return;
+        }
+        lista.innerHTML = tickets.map(t => {
+            const info = STATUS_INFO[t.status] || {};
+            const disp = t.dispositivo_detail || {};
+            const equipInfo = [disp.tipo, disp.marca].filter(Boolean).join(' ') || `#${t.dispositivo}` || '—';
+            return `<div class="ticket-card">
+                <div class="ticket-status-bar" style="background:${info.barra || '#CBD5E1'};"></div>
+                <div class="ticket-body">
+                    <p class="ticket-titulo">${t.titulo || '(sem título)'}</p>
+                    <div class="ticket-meta">
+                        ${statusPill(t.status)}
+                        <span><i class="bi bi-pc-display" style="font-size:.7rem;"></i> ${equipInfo}</span>
+                        <span>${fmtData(t.criado_em)}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ── Bottom sheet ──────────────────────────────────────────────────────────
+
+    function abrirSheet() {
+        document.getElementById('sheet').classList.add('open');
+        document.getElementById('backdrop').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function fecharSheet() {
+        document.getElementById('sheet').classList.remove('open');
+        document.getElementById('backdrop').classList.remove('open');
+        document.body.style.overflow = '';
+        resetarSheet();
+    }
+
+    function resetarSheet() {
+        dispositivoAtual = null;
+        document.getElementById('device-code').value = '';
+        document.getElementById('device-erro').style.display = 'none';
+        document.getElementById('device-preview').classList.remove('show');
+        document.getElementById('ticket-titulo').value = '';
+        document.getElementById('ticket-descricao').value = '';
+        document.getElementById('ticket-erro').style.display = 'none';
+        document.getElementById('passo-device').style.display = '';
+        document.getElementById('passo-ticket').style.display = 'none';
+        const btn = document.getElementById('btn-buscar');
+        btn.disabled = false;
+        btn.innerHTML = 'Buscar Equipamento';
+    }
+
+    // ── QR Scanner ────────────────────────────────────────────────────────────
+
+    async function abrirScanner() {
+        document.getElementById('scanner-overlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        try {
+            qrScanner = new Html5Qrcode('qr-reader');
+            await qrScanner.start(
+                { facingMode: 'environment' },
+                { fps: 15, qrbox: { width: 260, height: 260 } },
+                (codigo) => {
+                    fecharScanner();
+                    document.getElementById('device-code').value = codigo;
+                    buscarDispositivo();
+                },
+                () => {}
+            );
+        } catch (err) {
+            fecharScanner();
+            document.getElementById('device-erro').textContent = 'Câmera não disponível. Digite o código manualmente.';
+            document.getElementById('device-erro').style.display = 'block';
+        }
+    }
+
+    function fecharScanner() {
+        if (qrScanner) {
+            qrScanner.stop().catch(() => {});
+            qrScanner.clear();
+            qrScanner = null;
+        }
+        document.getElementById('scanner-overlay').classList.remove('open');
+        document.body.style.overflow = 'hidden'; // keep sheet scroll locked
+    }
+
+    // ── Buscar dispositivo ────────────────────────────────────────────────────
+
+    async function buscarDispositivo() {
+        const codigo = document.getElementById('device-code').value.trim();
+        if (!codigo) { document.getElementById('device-code').focus(); return; }
+
+        const btn = document.getElementById('btn-buscar');
+        const erroEl = document.getElementById('device-erro');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spin"></span>Buscando…';
+        erroEl.style.display = 'none';
+        document.getElementById('device-preview').classList.remove('show');
+
+        const res = await authFetch(`${API}/dispositivos/buscar/?q=${encodeURIComponent(codigo)}`);
+        btn.disabled = false;
+
+        if (res.ok) {
+            const d = await res.json();
+            if (d.situacao === 'descartado') {
+                erroEl.innerHTML = '<i class="bi bi-slash-circle me-1"></i>Equipamento descartado. Não é possível abrir reportes.';
+                erroEl.style.display = 'block';
+                btn.innerHTML = 'Buscar Equipamento';
+                return;
+            }
+            dispositivoAtual = d;
+            document.getElementById('device-nome').textContent = [d.tipo, d.marca].filter(Boolean).join(' ') || d.codigo_qr;
+            document.getElementById('device-info').textContent = [d.sala, d.situacao_display].filter(Boolean).join(' · ');
+            document.getElementById('device-preview').classList.add('show');
+            // avança para passo 2
+            document.getElementById('passo-device').style.display = 'none';
+            document.getElementById('passo-ticket').style.display = '';
+            document.getElementById('ticket-titulo').focus();
+        } else if (res.status === 404) {
+            erroEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Equipamento não encontrado.';
+            erroEl.style.display = 'block';
+            btn.innerHTML = 'Buscar Equipamento';
+        } else {
+            erroEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Erro ao buscar. Tente novamente.';
+            erroEl.style.display = 'block';
+            btn.innerHTML = 'Buscar Equipamento';
+        }
+    }
+
+    function voltarPasso1() {
+        document.getElementById('passo-ticket').style.display = 'none';
+        document.getElementById('passo-device').style.display = '';
+        document.getElementById('btn-buscar').innerHTML = 'Buscar Equipamento';
+        dispositivoAtual = null;
+    }
+
+    // ── Enviar reporte ────────────────────────────────────────────────────────
+
+    async function enviarReporte() {
+        const titulo = document.getElementById('ticket-titulo').value.trim();
+        const descricao = document.getElementById('ticket-descricao').value.trim();
+        const erroEl = document.getElementById('ticket-erro');
+
+        if (!titulo) {
+            erroEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Informe um título para o reporte.';
+            erroEl.style.display = 'block';
+            document.getElementById('ticket-titulo').focus();
+            return;
+        }
+
+        const btn = document.getElementById('btn-enviar');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spin"></span>Enviando…';
+        erroEl.style.display = 'none';
+
+        const res = await authFetch(`${API}/tickets/`, {
+            method: 'POST',
+            body: JSON.stringify({ titulo, descricao, dispositivo: dispositivoAtual.id }),
+        });
+
+        if (res.ok) {
+            fecharSheet();
+            await carregarTickets();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            const msgs = Object.values(data).flat();
+            erroEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' + (msgs[0] || 'Erro ao enviar. Tente novamente.');
+            erroEl.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send"></i>Enviar Reporte';
+        }
+    }
+</script>
+</body>
+</html>

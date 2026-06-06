@@ -198,6 +198,27 @@
     </div>
 </div>
 
+<!-- Modal: QR Code do Dispositivo -->
+<div class="modal fade" id="modal-qr" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">QR Code do Dispositivo</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div id="qr-canvas-wrap" class="d-flex justify-content-center mb-3"></div>
+                <p class="mb-0 text-muted small fw-medium" id="qr-codigo-label"></p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button class="btn btn-sm btn-outline-secondary" onclick="imprimirQr()">
+                    <i class="bi bi-printer me-1"></i>Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Histórico do Dispositivo -->
 <div class="modal fade" id="modal-historico" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -315,6 +336,7 @@
                 <td>${entNome}</td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
+                        <button class="btn-action" onclick="verQr('${d.codigo_qr}')" title="Ver QR Code"><i class="bi bi-qr-code"></i></button>
                         <button class="btn-action" onclick="abrirMover(${d.id})" title="Mover"><i class="bi bi-arrow-left-right"></i></button>
                         <button class="btn-action" onclick="verHistorico(${d.id})" title="Histórico"><i class="bi bi-clock-history"></i></button>
                         <button class="btn-action" onclick="abrirEdicao(${d.id})" title="Editar"><i class="bi bi-pencil"></i></button>
@@ -489,6 +511,35 @@
         else toast('Não foi possível excluir.', 'error');
     }
 
+    function verQr(codigo) {
+        const wrap = document.getElementById('qr-canvas-wrap');
+        wrap.innerHTML = '';
+        document.getElementById('qr-codigo-label').textContent = codigo;
+        new bootstrap.Modal(document.getElementById('modal-qr')).show();
+        // gera QR após o modal estar visível
+        document.getElementById('modal-qr').addEventListener('shown.bs.modal', () => {
+            wrap.innerHTML = '';
+            QRCode.toCanvas(document.createElement('canvas'), codigo, { width: 200, margin: 2 }, (err, canvas) => {
+                if (!err) { canvas.style.borderRadius = '8px'; wrap.appendChild(canvas); }
+            });
+        }, { once: true });
+    }
+
+    function imprimirQr() {
+        const canvas = document.querySelector('#qr-canvas-wrap canvas');
+        if (!canvas) return;
+        const codigo = document.getElementById('qr-codigo-label').textContent;
+        const win = window.open('', '_blank');
+        win.document.write(`<!DOCTYPE html><html><head><title>QR — ${codigo}</title>
+            <style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;}
+            p{margin:.5rem 0 0;font-size:14px;color:#333;font-weight:600;letter-spacing:.5px;}</style></head>
+            <body><img src="${canvas.toDataURL()}"><p>${codigo}</p></body></html>`);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); win.close(); }, 300);
+    }
+
     document.addEventListener('DOMContentLoaded', carregar);
 </script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 {% endblock %}

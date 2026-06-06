@@ -117,3 +117,26 @@ class DispositivoViewSet(viewsets.ModelViewSet):
         dispositivo = self.get_object()
         qs = dispositivo.historico.select_related('usuario').all()
         return Response(HistoricoDispositivoSerializer(qs, many=True).data)
+
+    # ── RF009 / RN001: buscar por código QR (acesso de qualquer perfil) ──────
+
+    @action(detail=False, methods=['get'], url_path='buscar',
+            permission_classes=[permissions.IsAuthenticated])
+    def buscar(self, request):
+        codigo = request.query_params.get('q', '').strip()
+        if not codigo:
+            return Response({'erro': 'Parâmetro q é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            d = Dispositivo.objects.select_related('sala', 'modelo').get(codigo_qr=codigo)
+        except Dispositivo.DoesNotExist:
+            return Response({'erro': 'Equipamento não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            'id': d.pk,
+            'codigo_qr': d.codigo_qr,
+            'tipo': d.tipo,
+            'marca': d.marca,
+            'situacao': d.situacao,
+            'situacao_display': d.get_situacao_display(),
+            'sala': str(d.sala) if d.sala else None,
+            'modelo': str(d.modelo) if d.modelo else None,
+        })

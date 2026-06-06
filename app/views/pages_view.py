@@ -53,3 +53,7 @@ class PermissoesPageView(TemplateView):
 
 class ManutencoesPageView(TemplateView):
     template_name = 'manutencoes.html'
+
+
+class MeusReportesPageView(TemplateView):
+    template_name = 'meus-reportes.html'

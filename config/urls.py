@@ -9,7 +9,7 @@ from app.views.pages_view import (
     LoginPageView, AcessoPageView, DashboardPageView, TicketsPageView,
     DispositivosPageView, SalasPageView, EntidadesPageView,
     CategoriasPageView, ModelosPageView, UsuariosPageView, PermissoesPageView,
-    ManutencoesPageView,
+    ManutencoesPageView, MeusReportesPageView,
 )
 
 urlpatterns = [
@@ -36,6 +36,7 @@ urlpatterns = [
     # ── Pages (templates) ─────────────────────────────────────────────────────
     path('login/', LoginPageView.as_view(), name='login'),
     path('acesso/', AcessoPageView.as_view(), name='acesso'),
+    path('meus-reportes/', MeusReportesPageView.as_view(), name='meus_reportes'),
     path('tickets/', TicketsPageView.as_view(), name='tickets'),
     path('dispositivos/', DispositivosPageView.as_view(), name='dispositivos'),
     path('salas/', SalasPageView.as_view(), name='salas'),

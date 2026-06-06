@@ -189,6 +189,8 @@
         const usuario = getUsuario();
         const nome   = usuario.nome || usuario.email || '';
         const perfil = usuario.perfil || 'comum';
+
+        if (perfil === 'comum') { window.location.href = '/meus-reportes/'; return; }
         const nivel  = PERFIL_ORDEM[perfil] ?? 0;
 
         if (nome) {
