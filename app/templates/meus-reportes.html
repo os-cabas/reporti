@@ -512,23 +512,36 @@
 
     // ── QR Scanner ────────────────────────────────────────────────────────────
 
+    let scannerAtivo = false;
+
     async function abrirScanner() {
+        if (scannerAtivo) return;
         document.getElementById('scanner-overlay').classList.add('open');
         document.body.style.overflow = 'hidden';
         try {
-            qrScanner = new Html5Qrcode('qr-reader');
+            if (!qrScanner) {
+                qrScanner = new Html5Qrcode('qr-reader');
+            }
             await qrScanner.start(
                 { facingMode: 'environment' },
                 { fps: 15, qrbox: { width: 260, height: 260 } },
-                (codigo) => {
+                (resultado) => {
+                    let codigo = resultado;
+                    try {
+                        const url = new URL(resultado);
+                        const partes = url.pathname.split('/').filter(Boolean);
+                        if (partes[0] === 'r' && partes[1]) codigo = partes[1];
+                    } catch {}
                     fecharScanner();
                     document.getElementById('device-code').value = codigo;
                     buscarDispositivo();
                 },
                 () => {}
             );
-        } catch (err) {
-            fecharScanner();
+            scannerAtivo = true;
+        } catch {
+            document.getElementById('scanner-overlay').classList.remove('open');
+            document.body.style.overflow = '';
             document.getElementById('device-erro').textContent = 'Câmera não disponível. Digite o código manualmente.';
             document.getElementById('device-erro').style.display = 'block';
         }
@@ -537,10 +550,9 @@
     function fecharScanner() {
         document.getElementById('scanner-overlay').classList.remove('open');
         document.body.style.overflow = '';
-        if (qrScanner) {
-            const scanner = qrScanner;
-            qrScanner = null;
-            scanner.stop().catch(() => {}).finally(() => { try { scanner.clear(); } catch (_) {} });
+        if (qrScanner && scannerAtivo) {
+            scannerAtivo = false;
+            qrScanner.stop().catch(() => {});
         }
     }
 
