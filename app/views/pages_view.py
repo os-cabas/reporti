@@ -1,8 +1,14 @@
+from django.conf import settings
 from django.views.generic import TemplateView
 
 
 class LoginPageView(TemplateView):
     template_name = 'login.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['google_client_id'] = settings.GOOGLE_CLIENT_ID
+        return ctx
 
 
 class DashboardPageView(TemplateView):
@@ -39,3 +45,7 @@ class UsuariosPageView(TemplateView):
 
 class PermissoesPageView(TemplateView):
     template_name = 'permissoes.html'
+
+
+class ManutencoesPageView(TemplateView):
+    template_name = 'manutencoes.html'

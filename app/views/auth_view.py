@@ -20,7 +20,17 @@ from app.models.usuario import Usuario
 
 def _gerar_tokens(usuario):
     refresh = RefreshToken.for_user(usuario)
-    return {'refresh': str(refresh), 'access': str(refresh.access_token)}
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+        'usuario': {
+            'id': usuario.pk,
+            'nome': usuario.get_full_name() or usuario.username,
+            'email': usuario.email,
+            'perfil': usuario.perfil,
+            'entidade_id': usuario.entidade_id,
+        },
+    }
 
 
 def _username_unico(base: str) -> str:
@@ -103,9 +113,7 @@ class MagicLinkSolicitarView(APIView):
             return Response({'erro': 'Campo email é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
         token_obj = MagicLinkToken.gerar(email)
-        link = request.build_absolute_uri(
-            f'/api/auth/magic-link/verificar/?token={token_obj.token}'
-        )
+        link = request.build_absolute_uri(f'/login/?token={token_obj.token}')
 
         send_mail(
             subject='Seu link de acesso – ReporTi',

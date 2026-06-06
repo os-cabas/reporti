@@ -9,6 +9,7 @@ from app.views.pages_view import (
     LoginPageView, DashboardPageView, TicketsPageView,
     DispositivosPageView, SalasPageView, EntidadesPageView,
     CategoriasPageView, ModelosPageView, UsuariosPageView, PermissoesPageView,
+    ManutencoesPageView,
 )
 
 urlpatterns = [
@@ -42,5 +43,6 @@ urlpatterns = [
     path('modelos/', ModelosPageView.as_view(), name='modelos'),
     path('usuarios/', UsuariosPageView.as_view(), name='usuarios'),
     path('permissoes/', PermissoesPageView.as_view(), name='permissoes'),
+    path('manutencoes/', ManutencoesPageView.as_view(), name='manutencoes'),
     path('', DashboardPageView.as_view(), name='dashboard'),
 ]
