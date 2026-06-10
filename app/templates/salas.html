@@ -36,6 +36,7 @@
         </tbody>
     </table>
 </div>
+<div id="pag-salas"></div>
 
 <!-- Modal: Nova Sala -->
 <div class="modal fade" id="modal-novo" tabindex="-1">
@@ -133,17 +134,22 @@
 
 {% block scripts %}
 <script>
-    let todasSalas = [];
-    let salaRows   = [];
+    let todasSalas    = [];
+    let salaRows      = [];
+    let rowsFiltradas = [];
+    let paginaAtual   = 1;
+    const PAGE_SIZE   = 50;
 
     function aplicarBusca() {
         const termo = document.getElementById('search-salas').value.toLowerCase();
-        renderRows(termo ? salaRows.filter(r => r.termo.includes(termo)) : salaRows);
+        rowsFiltradas = termo ? salaRows.filter(r => r.termo.includes(termo)) : salaRows;
+        paginaAtual = 1;
+        renderRows();
     }
 
-    function renderRows(rows) {
+    function renderRows() {
         const tbody = document.getElementById('salas-body');
-        if (!rows.length) {
+        if (!rowsFiltradas.length) {
             tbody.innerHTML = `<tr><td colspan="6">
                 <div class="empty-state">
                     <i class="bi bi-door-open empty-state-icon"></i>
@@ -151,18 +157,26 @@
                     <p class="empty-state-sub">Cadastre uma nova sala ou ajuste a busca.</p>
                 </div>
             </td></tr>`;
+            document.getElementById('pag-salas').innerHTML = '';
             return;
         }
-        tbody.innerHTML = rows.map(r => r.html).join('');
+        const inicio = (paginaAtual - 1) * PAGE_SIZE;
+        tbody.innerHTML = rowsFiltradas.slice(inicio, inicio + PAGE_SIZE).map(r => r.html).join('');
+        renderPaginacao('pag-salas', rowsFiltradas.length, paginaAtual, PAGE_SIZE, 'irParaPagina');
+    }
+
+    function irParaPagina(n) {
+        paginaAtual = n;
+        renderRows();
     }
 
     async function carregar() {
-        const [resSalas, resEnt] = await Promise.all([
-            authFetch(`${API}/salas/`).then(r => r.json()),
-            authFetch(`${API}/entidades/`).then(r => r.json()),
+        paginaAtual = 1;
+        const [todasSalasFetch, entArr] = await Promise.all([
+            fetchAll(`${API}/salas/`),
+            fetchAll(`${API}/entidades/`),
         ]);
-        todasSalas = Array.isArray(resSalas) ? resSalas : (resSalas.results || []);
-        const entArr = Array.isArray(resEnt) ? resEnt : (resEnt.results || []);
+        todasSalas = todasSalasFetch;
         const entMap = Object.fromEntries(entArr.map(e => [e.id, e.nome]));
 
         salaRows = todasSalas.map(s => {
@@ -184,7 +198,8 @@
             return { id: s.id, termo: `${s.nome} ${blocoAndar} ${entNome}`.toLowerCase(), html };
         });
 
-        renderRows(salaRows);
+        rowsFiltradas = salaRows;
+        renderRows();
 
         ['f-entidade', 'e-entidade'].forEach(selId => {
             const sel = document.getElementById(selId);

@@ -37,6 +37,7 @@
         </tbody>
     </table>
 </div>
+<div id="pag-ent"></div>
 
 <!-- Modal: Nova Entidade -->
 <div class="modal fade" id="modal-novo" tabindex="-1">
@@ -139,18 +140,23 @@
 {% block scripts %}
 <script>
     let todasEntidades = [];
-    let entRows = [];
+    let entRows        = [];
+    let rowsFiltradas  = [];
+    let paginaAtual    = 1;
+    const PAGE_SIZE    = 50;
 
     const TIPO_LABEL = { escola: 'Escola', empresa: 'Empresa', universidade: 'Universidade', outro: 'Outro' };
 
     function aplicarBusca() {
         const termo = document.getElementById('search-ent').value.toLowerCase();
-        renderRows(termo ? entRows.filter(r => r.termo.includes(termo)) : entRows);
+        rowsFiltradas = termo ? entRows.filter(r => r.termo.includes(termo)) : entRows;
+        paginaAtual = 1;
+        renderRows();
     }
 
-    function renderRows(rows) {
+    function renderRows() {
         const tbody = document.getElementById('entidades-body');
-        if (!rows.length) {
+        if (!rowsFiltradas.length) {
             tbody.innerHTML = `<tr><td colspan="7">
                 <div class="empty-state">
                     <i class="bi bi-building empty-state-icon"></i>
@@ -158,18 +164,26 @@
                     <p class="empty-state-sub">Crie uma entidade para agrupar salas e dispositivos.</p>
                 </div>
             </td></tr>`;
+            document.getElementById('pag-ent').innerHTML = '';
             return;
         }
-        tbody.innerHTML = rows.map(r => r.html).join('');
+        const inicio = (paginaAtual - 1) * PAGE_SIZE;
+        tbody.innerHTML = rowsFiltradas.slice(inicio, inicio + PAGE_SIZE).map(r => r.html).join('');
+        renderPaginacao('pag-ent', rowsFiltradas.length, paginaAtual, PAGE_SIZE, 'irParaPagina');
+    }
+
+    function irParaPagina(n) {
+        paginaAtual = n;
+        renderRows();
     }
 
     async function carregar() {
-        const [resEnt, resSalas] = await Promise.all([
-            authFetch(`${API}/entidades/`).then(r => r.json()),
-            authFetch(`${API}/salas/`).then(r => r.json()),
+        paginaAtual = 1;
+        const [todasEntFetch, salaArr] = await Promise.all([
+            fetchAll(`${API}/entidades/`),
+            fetchAll(`${API}/salas/`),
         ]);
-        todasEntidades = Array.isArray(resEnt)   ? resEnt   : (resEnt.results   || []);
-        const salaArr  = Array.isArray(resSalas) ? resSalas : (resSalas.results || []);
+        todasEntidades = todasEntFetch;
 
         const salasCount = {};
         salaArr.forEach(s => { salasCount[s.entidade] = (salasCount[s.entidade] || 0) + 1; });
@@ -197,7 +211,8 @@
             return { id: e.id, termo: `${e.nome} ${tipoLabel} ${e.email_responsavel || ''}`.toLowerCase(), html };
         });
 
-        renderRows(entRows);
+        rowsFiltradas = entRows;
+        renderRows();
     }
 
     async function criar() {
