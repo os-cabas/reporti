@@ -43,6 +43,7 @@
         </tbody>
     </table>
 </div>
+<div id="pag-disp"></div>
 
 <!-- Modal: Novo Dispositivo -->
 <div class="modal fade" id="modal-novo" tabindex="-1">
@@ -232,12 +233,15 @@
 
 {% block scripts %}
 <script>
-    let todosDisp   = [];
-    let salaArr     = [];
-    let modeloArr   = [];
-    let dispRows    = [];
-    let filtroSit   = '';
-    let termoBusca  = '';
+    let todosDisp     = [];
+    let salaArr       = [];
+    let modeloArr     = [];
+    let dispRows      = [];
+    let rowsFiltradas = [];
+    let filtroSit     = '';
+    let termoBusca    = '';
+    let paginaAtual   = 1;
+    const PAGE_SIZE   = 50;
 
     const SITUACAO_INFO = {
         operacional:  { label: 'Operacional',   cor: '#16a34a', bg: '#f0fdf4' },
@@ -254,6 +258,7 @@
 
     function aplicarBusca() {
         termoBusca = document.getElementById('search-disp').value.toLowerCase();
+        paginaAtual = 1;
         aplicarFiltros();
     }
 
@@ -262,22 +267,23 @@
         document.querySelectorAll('.filter-group .btn').forEach(b => b.classList.remove('active'));
         const ids = { '': 'fs-todos', 'operacional': 'fs-op', 'em_manutencao': 'fs-manut', 'inativo,descartado': 'fs-inativo' };
         document.getElementById(ids[sit] || 'fs-todos')?.classList.add('active');
+        paginaAtual = 1;
         aplicarFiltros();
     }
 
     function aplicarFiltros() {
-        let rows = dispRows;
+        rowsFiltradas = dispRows;
         if (filtroSit) {
             const vals = filtroSit.split(',');
-            rows = rows.filter(r => vals.includes(r.situacao));
+            rowsFiltradas = rowsFiltradas.filter(r => vals.includes(r.situacao));
         }
-        if (termoBusca) rows = rows.filter(r => r.termo.includes(termoBusca));
-        renderRows(rows);
+        if (termoBusca) rowsFiltradas = rowsFiltradas.filter(r => r.termo.includes(termoBusca));
+        renderRows();
     }
 
-    function renderRows(rows) {
+    function renderRows() {
         const tbody = document.getElementById('disp-body');
-        if (!rows.length) {
+        if (!rowsFiltradas.length) {
             tbody.innerHTML = `<tr><td colspan="7">
                 <div class="empty-state">
                     <i class="bi bi-pc-display empty-state-icon"></i>
@@ -285,25 +291,34 @@
                     <p class="empty-state-sub">Cadastre um novo dispositivo ou ajuste os filtros.</p>
                 </div>
             </td></tr>`;
+            document.getElementById('pag-disp').innerHTML = '';
             return;
         }
-        tbody.innerHTML = rows.map(r => r.html).join('');
+        const inicio = (paginaAtual - 1) * PAGE_SIZE;
+        tbody.innerHTML = rowsFiltradas.slice(inicio, inicio + PAGE_SIZE).map(r => r.html).join('');
+        renderPaginacao('pag-disp', rowsFiltradas.length, paginaAtual, PAGE_SIZE, 'irParaPagina');
+    }
+
+    function irParaPagina(n) {
+        paginaAtual = n;
+        renderRows();
     }
 
     async function carregar() {
-        const [resDisp, resSalas, resModelos, resCat, resEnt] = await Promise.all([
-            authFetch(`${API}/dispositivos/`).then(r => r.json()),
-            authFetch(`${API}/salas/`).then(r => r.json()),
-            authFetch(`${API}/modelos/`).then(r => r.json()),
-            authFetch(`${API}/categorias/`).then(r => r.json()),
-            authFetch(`${API}/entidades/`).then(r => r.json()),
+        paginaAtual = 1;
+        const [todosDispFetch, salaFetch, modeloFetch, catFetch, entFetch] = await Promise.all([
+            fetchAll(`${API}/dispositivos/`),
+            fetchAll(`${API}/salas/`),
+            fetchAll(`${API}/modelos/`),
+            fetchAll(`${API}/categorias/`),
+            fetchAll(`${API}/entidades/`),
         ]);
 
-        todosDisp  = Array.isArray(resDisp)    ? resDisp    : (resDisp.results    || []);
-        salaArr    = Array.isArray(resSalas)   ? resSalas   : (resSalas.results   || []);
-        modeloArr  = Array.isArray(resModelos) ? resModelos : (resModelos.results || []);
-        const catArr = Array.isArray(resCat)   ? resCat     : (resCat.results     || []);
-        const entArr = Array.isArray(resEnt)   ? resEnt     : (resEnt.results     || []);
+        todosDisp    = todosDispFetch;
+        salaArr      = salaFetch;
+        modeloArr    = modeloFetch;
+        const catArr = catFetch;
+        const entArr = entFetch;
 
         const salaMap   = Object.fromEntries(salaArr.map(s => [s.id, s]));
         const modeloMap = Object.fromEntries(modeloArr.map(m => [m.id, m]));
@@ -345,7 +360,8 @@
             };
         });
 
-        renderRows(dispRows);
+        rowsFiltradas = dispRows;
+        renderRows();
         popularSelects();
     }
 

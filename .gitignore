@@ -24,3 +24,5 @@ venv/
 env/
 
 docs/
+
+*.md

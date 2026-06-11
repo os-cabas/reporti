@@ -5,94 +5,399 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-3">
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#fef2f2;color:#dc2626;">
-                <i class="bi bi-exclamation-circle"></i>
-            </div>
-            <div>
-                <div class="stat-value" id="count-abertos">—</div>
-                <div class="stat-label">Chamados Abertos</div>
-            </div>
-        </div>
+<style>
+    /* ── Greeting ─────────────────────────────────────────────────────── */
+    .dash-greeting {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+    .dash-greeting-name {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -.3px;
+    }
+    .dash-greeting-entity {
+        font-size: .875rem;
+        font-weight: 400;
+        color: var(--text-muted);
+        margin-left: .35rem;
+    }
+    .dash-greeting-date {
+        font-size: .8rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    /* ── Pipeline strip ───────────────────────────────────────────────── */
+    .dash-pipeline {
+        display: flex;
+        align-items: stretch;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+    }
+
+    .pipeline-cell {
+        flex: 1;
+        padding: 1.125rem 1.375rem;
+        display: flex;
+        align-items: center;
+        gap: .875rem;
+        border-right: 1px solid var(--border-light);
+        position: relative;
+        transition: background .15s;
+    }
+    .pipeline-cell:last-child { border-right: none; }
+    .pipeline-cell:hover { background: #fafbff; }
+
+    .pipeline-sep {
+        width: 1px;
+        background: var(--border);
+        flex-shrink: 0;
+        margin: .75rem 0;
+        align-self: stretch;
+    }
+
+    .pipeline-num {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -1.5px;
+        line-height: 1;
+    }
+    .pipeline-label {
+        font-size: .75rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        line-height: 1.4;
+        max-width: 90px;
+    }
+    .pipeline-indicator {
+        width: 3px;
+        align-self: stretch;
+        border-radius: 0 3px 3px 0;
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        opacity: 0;
+        transition: opacity .15s;
+    }
+    .pipeline-cell:hover .pipeline-indicator { opacity: 1; }
+
+    .pipeline-urgent .pipeline-num  { color: #dc2626; }
+    .pipeline-urgent .pipeline-indicator { background: #dc2626; }
+
+    .pipeline-progress .pipeline-num { color: #d97706; }
+    .pipeline-progress .pipeline-indicator { background: #d97706; }
+
+    .pipeline-done .pipeline-num { color: #16a34a; }
+    .pipeline-done .pipeline-indicator { background: #16a34a; }
+
+    .pipeline-equip .pipeline-num { color: var(--primary); }
+    .pipeline-equip .pipeline-indicator { background: var(--primary); }
+
+    .pipeline-down .pipeline-num { color: #7c3aed; }
+    .pipeline-down .pipeline-indicator { background: #7c3aed; }
+
+    /* ── Main grid ────────────────────────────────────────────────────── */
+    .dash-grid {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 1.125rem;
+        align-items: start;
+    }
+
+    /* ── Activity feed ────────────────────────────────────────────────── */
+    .feed-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+    .feed-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .875rem 1.25rem;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .feed-title-text {
+        font-size: .8125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    .feed-link {
+        font-size: .75rem;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: .2rem;
+        transition: opacity .15s;
+    }
+    .feed-link:hover { opacity: .75; }
+
+    .feed-list { list-style: none; margin: 0; padding: 0; }
+
+    .feed-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: start;
+        gap: .875rem;
+        padding: .875rem 1.25rem;
+        border-bottom: 1px solid var(--border-light);
+        transition: background .12s;
+    }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-item:hover { background: #fafbff; }
+
+    .feed-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-top: .35rem;
+        flex-shrink: 0;
+    }
+    .dot-aberto      { background: #ef4444; }
+    .dot-assumido    { background: #3b82f6; }
+    .dot-em_andamento{ background: #f59e0b; }
+    .dot-resolvido   { background: #22c55e; }
+    .dot-encerrado   { background: #7c3aed; }
+
+    .feed-body {}
+    .feed-item-title {
+        font-size: .875rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: .2rem;
+        line-height: 1.35;
+    }
+    .feed-item-meta {
+        font-size: .75rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
+    .feed-item-sep { opacity: .4; }
+    .feed-item-time { color: var(--text-muted); white-space: nowrap; }
+
+    .feed-empty {
+        padding: 3rem 1.5rem;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: .875rem;
+    }
+    .feed-empty i { font-size: 1.75rem; display: block; margin-bottom: .5rem; opacity: .35; }
+
+    /* ── Right panel ──────────────────────────────────────────────────── */
+    .side-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1.125rem;
+    }
+
+    .panel-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .panel-header {
+        padding: .8rem 1.125rem;
+        border-bottom: 1px solid var(--border-light);
+        font-size: .75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: var(--text-muted);
+    }
+
+    .panel-body { padding: 1rem 1.125rem; }
+
+    /* Device health bar */
+    .equip-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: .875rem;
+    }
+    .equip-row:last-child { margin-bottom: 0; }
+    .equip-info { display: flex; align-items: center; gap: .5rem; font-size: .8125rem; font-weight: 500; color: var(--text-secondary); }
+    .equip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .equip-count { font-size: .9rem; font-weight: 700; color: var(--text-primary); }
+
+    .health-bar {
+        height: 5px;
+        background: var(--border);
+        border-radius: 99px;
+        overflow: hidden;
+        margin: .625rem 0 1rem;
+    }
+    .health-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+        border-radius: 99px;
+        transition: width .6s ease;
+    }
+
+    /* Team row */
+    .team-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .6rem 0;
+        border-bottom: 1px solid var(--border-light);
+        font-size: .8125rem;
+    }
+    .team-row:last-child { border-bottom: none; }
+    .team-name { font-weight: 500; color: var(--text-primary); }
+    .team-role { font-size: .72rem; color: var(--text-muted); }
+
+    /* Quick links */
+    .quick-links { display: flex; flex-direction: column; gap: .375rem; padding: .875rem 1.125rem; }
+    .quick-link {
+        display: flex;
+        align-items: center;
+        gap: .625rem;
+        padding: .5rem .625rem;
+        border-radius: var(--radius-sm);
+        font-size: .8125rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: background .12s, color .12s;
+    }
+    .quick-link:hover { background: var(--primary-light); color: var(--primary); }
+    .quick-link i { font-size: .875rem; opacity: .7; flex-shrink: 0; }
+
+    /* ── Responsive ───────────────────────────────────────────────────── */
+    @media (max-width: 1100px) {
+        .dash-grid { grid-template-columns: 1fr; }
+        .side-panel { display: grid; grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+        .dash-pipeline { flex-wrap: wrap; }
+        .pipeline-cell { flex: 1 1 calc(50% - 1px); border-bottom: 1px solid var(--border-light); }
+        .side-panel { grid-template-columns: 1fr; }
+        .dash-greeting-entity { display: none; }
+    }
+</style>
+
+<!-- Greeting -->
+<div class="dash-greeting">
+    <div>
+        <span class="dash-greeting-name" id="greeting-text">Olá</span>
+        <span class="dash-greeting-entity" id="greeting-entity"></span>
     </div>
-    <div class="col-sm-6 col-xl-3">
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#f0fdf4;color:#16a34a;">
-                <i class="bi bi-check-circle"></i>
-            </div>
-            <div>
-                <div class="stat-value" id="count-concluidos">—</div>
-                <div class="stat-label">Chamados Concluídos</div>
-            </div>
-        </div>
+    <span class="dash-greeting-date" id="greeting-date"></span>
+</div>
+
+<!-- Pipeline strip -->
+<div class="dash-pipeline">
+    <div class="pipeline-cell pipeline-urgent">
+        <div class="pipeline-indicator"></div>
+        <span class="pipeline-num" id="p-aguardando">—</span>
+        <span class="pipeline-label">aguardando<br>atendimento</span>
     </div>
-    <div class="col-sm-6 col-xl-3">
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#eff6ff;color:#3b82f6;">
-                <i class="bi bi-pc-display"></i>
-            </div>
-            <div>
-                <div class="stat-value" id="count-equip">—</div>
-                <div class="stat-label">Equipamentos Ativos</div>
-            </div>
-        </div>
+    <div class="pipeline-cell pipeline-progress">
+        <div class="pipeline-indicator"></div>
+        <span class="pipeline-num" id="p-andamento">—</span>
+        <span class="pipeline-label">em<br>andamento</span>
     </div>
-    <div class="col-sm-6 col-xl-3">
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#fffbeb;color:#d97706;">
-                <i class="bi bi-tools"></i>
-            </div>
-            <div>
-                <div class="stat-value" id="count-manut">—</div>
-                <div class="stat-label">Em Manutenção</div>
-            </div>
-        </div>
+    <div class="pipeline-cell pipeline-done">
+        <div class="pipeline-indicator"></div>
+        <span class="pipeline-num" id="p-concluidos">—</span>
+        <span class="pipeline-label">concluídos<br>no total</span>
+    </div>
+    <div class="pipeline-cell pipeline-equip">
+        <div class="pipeline-indicator"></div>
+        <span class="pipeline-num" id="p-ativos">—</span>
+        <span class="pipeline-label">equipamentos<br>operacionais</span>
+    </div>
+    <div class="pipeline-cell pipeline-down">
+        <div class="pipeline-indicator"></div>
+        <span class="pipeline-num" id="p-manut">—</span>
+        <span class="pipeline-label">fora de<br>operação</span>
     </div>
 </div>
 
-<div class="row g-3">
-    <div class="col-xl-8">
-        <div class="table-card">
-            <div class="table-card-header">
-                <span class="table-card-title">
-                    <i class="bi bi-clock-history me-2 text-muted"></i>Tickets Recentes
-                </span>
-                <a href="/tickets/" class="btn btn-sm btn-outline-primary">
-                    Ver todos <i class="bi bi-arrow-right ms-1"></i>
+<!-- Main grid -->
+<div class="dash-grid">
+    <!-- Activity feed -->
+    <div class="feed-card">
+        <div class="feed-header">
+            <span class="feed-title-text">Atividade recente</span>
+            <a href="/tickets/" class="feed-link">todos os tickets <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <ul class="feed-list" id="feed-list">
+            <li class="feed-empty"><i class="bi bi-hourglass"></i>Carregando…</li>
+        </ul>
+    </div>
+
+    <!-- Side panel -->
+    <div class="side-panel">
+
+        <!-- Device health -->
+        <div class="panel-card">
+            <div class="panel-header">Equipamentos</div>
+            <div class="panel-body">
+                <div class="health-bar">
+                    <div class="health-bar-fill" id="health-fill" style="width:0%"></div>
+                </div>
+                <div class="equip-row">
+                    <div class="equip-info">
+                        <span class="equip-dot" style="background:#22c55e;"></span>Operacionais
+                    </div>
+                    <span class="equip-count" id="eq-op">—</span>
+                </div>
+                <div class="equip-row">
+                    <span class="equip-info">
+                        <span class="equip-dot" style="background:#f59e0b;"></span>Em manutenção
+                    </span>
+                    <span class="equip-count" id="eq-manut">—</span>
+                </div>
+                <div class="equip-row">
+                    <span class="equip-info">
+                        <span class="equip-dot" style="background:#94a3b8;"></span>Inativos
+                    </span>
+                    <span class="equip-count" id="eq-inativo">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick links -->
+        <div class="panel-card">
+            <div class="panel-header">Acessos rápidos</div>
+            <div class="quick-links">
+                <a href="/tickets/" class="quick-link">
+                    <i class="bi bi-ticket-perforated"></i>Abrir tickets
+                </a>
+                <a href="/dispositivos/" class="quick-link">
+                    <i class="bi bi-pc-display"></i>Dispositivos
+                </a>
+                <a href="/manutencoes/" class="quick-link">
+                    <i class="bi bi-tools"></i>Manutenções
+                </a>
+                <a href="/usuarios/" class="quick-link">
+                    <i class="bi bi-people"></i>Usuários
                 </a>
             </div>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Título</th>
-                        <th>Status</th>
-                        <th>Criado em</th>
-                    </tr>
-                </thead>
-                <tbody id="recent-tickets">
-                    <tr><td colspan="4" class="text-center text-muted py-4">Carregando...</td></tr>
-                </tbody>
-            </table>
         </div>
-    </div>
-    <div class="col-xl-4">
-        <div class="stat-card flex-column align-items-start" style="gap:.25rem;">
-            <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;">
-                <div class="stat-icon" style="background:#f5f3ff;color:#7c3aed;">
-                    <i class="bi bi-people"></i>
-                </div>
-                <div>
-                    <div class="stat-value" id="count-tecnicos">—</div>
-                    <div class="stat-label">Técnicos Ativos</div>
-                </div>
-            </div>
-            <a href="/usuarios/" class="btn btn-sm btn-outline-secondary w-100 mt-1" style="font-size:.8rem;">
-                Gerenciar usuários <i class="bi bi-arrow-right ms-1"></i>
-            </a>
-        </div>
+
     </div>
 </div>
 {% endblock %}
@@ -100,11 +405,11 @@
 {% block scripts %}
 <script>
     const STATUS_BADGE = {
-        aberto:      { label: 'Aberto',       cls: 'badge-aberto' },
-        assumido:    { label: 'Assumido',      cls: 'badge-assumido' },
-        em_andamento:{ label: 'Em andamento',  cls: 'badge-em_andamento' },
-        resolvido:   { label: 'Resolvido',     cls: 'badge-resolvido' },
-        encerrado:   { label: 'Encerrado',     cls: 'badge-encerrado' },
+        aberto:       { label: 'Aberto',       cls: 'badge-aberto' },
+        assumido:     { label: 'Assumido',      cls: 'badge-assumido' },
+        em_andamento: { label: 'Em andamento',  cls: 'badge-em_andamento' },
+        resolvido:    { label: 'Resolvido',     cls: 'badge-resolvido' },
+        encerrado:    { label: 'Encerrado',     cls: 'badge-encerrado' },
     };
 
     function statusBadge(s) {
@@ -112,42 +417,117 @@
         return `<span class="status-badge ${cls}">${label}</span>`;
     }
 
+    function tempoRelativo(isoStr) {
+        const diff = (Date.now() - new Date(isoStr)) / 1000;
+        if (diff < 60)       return 'agora';
+        if (diff < 3600)     return `há ${Math.floor(diff / 60)} min`;
+        if (diff < 86400)    return `há ${Math.floor(diff / 3600)}h`;
+        if (diff < 172800)   return 'ontem';
+        return new Date(isoStr).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
+    }
+
+    function saudacao() {
+        const h = new Date().getHours();
+        if (h < 12) return 'Bom dia';
+        if (h < 18) return 'Boa tarde';
+        return 'Boa noite';
+    }
+
+    function dataExtenso() {
+        return new Date().toLocaleDateString('pt-BR', {
+            weekday: 'long', day: 'numeric', month: 'long'
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const u = getUsuario();
+        const primeiroNome = (u.nome || u.email || '').split(' ')[0];
+        document.getElementById('greeting-text').textContent =
+            primeiroNome ? `${saudacao()}, ${primeiroNome}` : saudacao();
+
+        if (u.entidade_nome) {
+            document.getElementById('greeting-entity').textContent = `— ${u.entidade_nome}`;
+        }
+
+        const data = dataExtenso();
+        document.getElementById('greeting-date').textContent =
+            data.charAt(0).toUpperCase() + data.slice(1);
+
+        loadDashboard();
+    });
+
     async function loadDashboard() {
-        const [dash, tickets] = await Promise.all([
+        const [dash, ticketsRes, dispositivosRes] = await Promise.all([
             authFetch(`${API}/dashboard/`).then(r => r.json()),
             authFetch(`${API}/tickets/`).then(r => r.json()),
+            authFetch(`${API}/dispositivos/`).then(r => r.json()),
         ]);
 
-        document.getElementById('count-abertos').textContent   = dash.chamados_abertos    ?? '—';
-        document.getElementById('count-concluidos').textContent = dash.chamados_concluidos ?? '—';
-        document.getElementById('count-equip').textContent     = dash.equipamentos_ativos  ?? '—';
-        document.getElementById('count-manut').textContent     = dash.equipamentos_em_manutencao ?? '—';
-        document.getElementById('count-tecnicos').textContent  = dash.tecnicos_ativos      ?? '—';
+        // Pipeline
+        const tickets    = Array.isArray(ticketsRes) ? ticketsRes : (ticketsRes.results || []);
+        const dispositivos = Array.isArray(dispositivosRes) ? dispositivosRes : (dispositivosRes.results || []);
 
-        const lista  = Array.isArray(tickets) ? tickets : (tickets.results || []);
-        const recent = lista.slice(0, 8);
-        const tbody  = document.getElementById('recent-tickets');
+        const aguardando = tickets.filter(t => t.status === 'aberto').length;
+        const andamento  = tickets.filter(t => t.status === 'assumido' || t.status === 'em_andamento').length;
+
+        document.getElementById('p-aguardando').textContent = aguardando;
+        document.getElementById('p-andamento').textContent  = andamento;
+        document.getElementById('p-concluidos').textContent = dash.chamados_concluidos ?? '—';
+        document.getElementById('p-ativos').textContent     = dash.equipamentos_ativos  ?? '—';
+        document.getElementById('p-manut').textContent      = dash.equipamentos_em_manutencao ?? '—';
+
+        // Device health
+        const totalDisp   = dispositivos.length;
+        const operacionais = dispositivos.filter(d => d.situacao === 'operacional').length;
+        const emManut      = dispositivos.filter(d => d.situacao === 'em_manutencao').length;
+        const inativos     = dispositivos.filter(d => d.situacao === 'inativo' || d.situacao === 'descartado').length;
+
+        document.getElementById('eq-op').textContent     = operacionais;
+        document.getElementById('eq-manut').textContent  = emManut;
+        document.getElementById('eq-inativo').textContent = inativos;
+
+        const pct = totalDisp > 0 ? Math.round((operacionais / totalDisp) * 100) : 0;
+        document.getElementById('health-fill').style.width = `${pct}%`;
+
+        // Build device map: id → label
+        const dispMap = {};
+        dispositivos.forEach(d => {
+            const label = [d.tipo, d.marca].filter(Boolean).join(' ') || `Dispositivo #${d.id}`;
+            dispMap[d.id] = { label, sala: d.sala };
+        });
+
+        // Activity feed — 10 tickets mais recentes
+        const recent = [...tickets]
+            .sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em))
+            .slice(0, 10);
+
+        const feedEl = document.getElementById('feed-list');
 
         if (!recent.length) {
-            tbody.innerHTML = `<tr><td colspan="4">
-                <div class="empty-state">
-                    <i class="bi bi-ticket empty-state-icon"></i>
-                    <p class="empty-state-title">Nenhum ticket ainda</p>
-                    <p class="empty-state-sub">Abra o primeiro ticket para começar.</p>
-                </div>
-            </td></tr>`;
+            feedEl.innerHTML = `<li class="feed-empty">
+                <i class="bi bi-inbox"></i>Nenhum ticket registrado ainda.
+            </li>`;
             return;
         }
 
-        tbody.innerHTML = recent.map(t => `
-            <tr>
-                <td class="text-muted fw-medium">#${t.id}</td>
-                <td class="fw-medium">${t.titulo}</td>
-                <td>${statusBadge(t.status)}</td>
-                <td class="text-muted">${new Date(t.criado_em).toLocaleDateString('pt-BR')}</td>
-            </tr>`).join('');
-    }
+        feedEl.innerHTML = recent.map(t => {
+            const disp    = dispMap[t.dispositivo];
+            const dispLabel = disp ? disp.label : null;
+            const meta    = [dispLabel].filter(Boolean).join(' · ');
+            const dotCls  = `dot-${t.status}`;
 
-    document.addEventListener('DOMContentLoaded', loadDashboard);
+            return `<li class="feed-item">
+                <span class="feed-dot ${dotCls}"></span>
+                <div class="feed-body">
+                    <div class="feed-item-title">${t.titulo}</div>
+                    <div class="feed-item-meta">
+                        ${meta ? `<span>${meta}</span><span class="feed-item-sep">·</span>` : ''}
+                        <span class="feed-item-time">${tempoRelativo(t.criado_em)}</span>
+                    </div>
+                </div>
+                ${statusBadge(t.status)}
+            </li>`;
+        }).join('');
+    }
 </script>
 {% endblock %}
