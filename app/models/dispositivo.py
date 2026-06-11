@@ -12,7 +12,7 @@ class Dispositivo(models.Model):
         ('descartado', 'Descartado'),
     ]
 
-    codigo_qr = models.CharField(max_length=100, unique=True)
+    codigo_qr = models.CharField(max_length=100, unique=True, blank=True)
     patrimonio = models.CharField(max_length=100, blank=True)
     tipo = models.CharField(max_length=100, blank=True)
     marca = models.CharField(max_length=100, blank=True)

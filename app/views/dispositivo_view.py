@@ -1,3 +1,8 @@
+import base64
+import io
+import uuid
+
+import qrcode
 from django.db import transaction
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -38,7 +43,12 @@ class DispositivoViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_create(self, serializer):
-        dispositivo = serializer.save()
+        # Salva com código temporário único para obter o pk
+        dispositivo = serializer.save(codigo_qr=f"_INIT_{uuid.uuid4().hex[:10]}")
+        # Gera o código definitivo: usa patrimônio se preenchido, senão usa o pk
+        patrimonio = (dispositivo.patrimonio or '').strip()
+        dispositivo.codigo_qr = patrimonio if patrimonio else f"DISP-{dispositivo.pk:06d}"
+        dispositivo.save(update_fields=['codigo_qr'])
         HistoricoDispositivo.objects.create(
             dispositivo=dispositivo,
             acao='criacao',
@@ -117,3 +127,46 @@ class DispositivoViewSet(viewsets.ModelViewSet):
         dispositivo = self.get_object()
         qs = dispositivo.historico.select_related('usuario').all()
         return Response(HistoricoDispositivoSerializer(qs, many=True).data)
+
+    # ── Geração de imagem QR Code ────────────────────────────────────────────
+
+    @action(detail=False, methods=['get'], url_path='qr-image',
+            permission_classes=[permissions.IsAuthenticated])
+    def qr_image(self, request):
+        codigo = request.query_params.get('codigo', '').strip()
+        if not codigo:
+            return Response({'erro': 'Parâmetro codigo é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        scan_url = f"{request.scheme}://{request.get_host()}/r/{codigo}/"
+        qr = qrcode.QRCode(box_size=8, border=2)
+        qr.add_data(scan_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        return Response({'image': f'data:image/png;base64,{b64}', 'url': scan_url})
+
+    # ── RF009 / RN001: buscar por código QR (acesso de qualquer perfil) ──────
+
+    @action(detail=False, methods=['get'], url_path='buscar',
+            permission_classes=[permissions.IsAuthenticated])
+    def buscar(self, request):
+        codigo = request.query_params.get('q', '').strip()
+        if not codigo:
+            return Response({'erro': 'Parâmetro q é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            d = Dispositivo.objects.select_related('sala', 'modelo').get(codigo_qr=codigo)
+        except Dispositivo.DoesNotExist:
+            return Response({'erro': 'Equipamento não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            'id': d.pk,
+            'codigo_qr': d.codigo_qr,
+            'tipo': d.tipo,
+            'marca': d.marca,
+            'situacao': d.situacao,
+            'situacao_display': d.get_situacao_display(),
+            'sala': str(d.sala) if d.sala else None,
+            'modelo': str(d.modelo) if d.modelo else None,
+        })

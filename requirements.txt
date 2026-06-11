@@ -1,4 +1,6 @@
 asgiref==3.11.1
+qrcode[pil]==8.2
+pillow==12.2.0
 requests==2.34.2
 Django==6.0.5
 djangorestframework==3.17.1

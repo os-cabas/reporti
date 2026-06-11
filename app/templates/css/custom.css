@@ -436,6 +436,27 @@ body {
 }
 .badge-fechado::before { background: #22c55e; }
 
+.badge-assumido {
+    background-color: #eff6ff;
+    color: #3b82f6;
+    border-color: #bfdbfe;
+}
+.badge-assumido::before { background: #3b82f6; }
+
+.badge-resolvido {
+    background-color: #f0fdf4;
+    color: #16a34a;
+    border-color: #bbf7d0;
+}
+.badge-resolvido::before { background: #22c55e; }
+
+.badge-encerrado {
+    background-color: #f5f3ff;
+    color: #7c3aed;
+    border-color: #ddd6fe;
+}
+.badge-encerrado::before { background: #7c3aed; }
+
 .tag-badge {
     display: inline-flex;
     align-items: center;
@@ -765,4 +786,75 @@ body {
 .error-msg {
     display: none;
     font-size: .8rem;
+}
+
+/* ============================================
+   RESPONSIVIDADE
+   ============================================ */
+
+.btn-hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.125rem;
+    flex-shrink: 0;
+    transition: all .15s;
+}
+.btn-hamburger:hover { background: var(--surface-2); }
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .45);
+    z-index: 1040;
+    cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+    :root { --sidebar-width: 220px; }
+    .page-content { padding: 1.375rem; }
+}
+
+@media (max-width: 768px) {
+    body { display: block; }
+
+    .sidebar {
+        position: fixed;
+        z-index: 1050;
+        height: 100vh;
+        transform: translateX(-100%);
+        transition: transform .25s ease;
+    }
+
+    body.sidebar-open .sidebar { transform: translateX(0); }
+    body.sidebar-open .sidebar-overlay { display: block; }
+
+    .btn-hamburger { display: flex; }
+
+    .main-wrapper { min-height: 100vh; }
+
+    .page-header { padding: .75rem 1rem; }
+
+    .page-content { padding: 1rem .875rem; }
+
+    .table-card { overflow-x: auto; }
+
+    .search-input { width: 100%; }
+
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .toolbar-left, .toolbar-right { width: 100%; }
+    .toolbar-right { justify-content: flex-start; }
+
+    #user-perfil { display: none; }
+
+    .login-wrapper { padding: 1rem; }
+    .login-card { padding: 1.75rem 1.25rem; }
 }

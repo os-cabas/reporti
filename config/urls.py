@@ -6,9 +6,10 @@ from app.serializers.token import AdminTokenObtainSerializer
 from app.views.auth_view import GoogleAuthView, MagicLinkSolicitarView, MagicLinkVerificarView
 from app.views.dashboard_view import DashboardView
 from app.views.pages_view import (
-    LoginPageView, DashboardPageView, TicketsPageView,
+    LoginPageView, AcessoPageView, DashboardPageView, TicketsPageView,
     DispositivosPageView, SalasPageView, EntidadesPageView,
     CategoriasPageView, ModelosPageView, UsuariosPageView, PermissoesPageView,
+    ManutencoesPageView, MeusReportesPageView, ReportarDispositivoPageView,
 )
 
 urlpatterns = [
@@ -34,6 +35,8 @@ urlpatterns = [
 
     # ── Pages (templates) ─────────────────────────────────────────────────────
     path('login/', LoginPageView.as_view(), name='login'),
+    path('acesso/', AcessoPageView.as_view(), name='acesso'),
+    path('meus-reportes/', MeusReportesPageView.as_view(), name='meus_reportes'),
     path('tickets/', TicketsPageView.as_view(), name='tickets'),
     path('dispositivos/', DispositivosPageView.as_view(), name='dispositivos'),
     path('salas/', SalasPageView.as_view(), name='salas'),
@@ -42,5 +45,7 @@ urlpatterns = [
     path('modelos/', ModelosPageView.as_view(), name='modelos'),
     path('usuarios/', UsuariosPageView.as_view(), name='usuarios'),
     path('permissoes/', PermissoesPageView.as_view(), name='permissoes'),
+    path('manutencoes/', ManutencoesPageView.as_view(), name='manutencoes'),
+    path('r/<str:codigo_qr>/', ReportarDispositivoPageView.as_view(), name='reportar'),
     path('', DashboardPageView.as_view(), name='dashboard'),
 ]

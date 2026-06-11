@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block title %}Manutenções — ReporTi{% endblock %}
+{% block nav_manutencoes %}active{% endblock %}
+{% block page_title %}Manutenções{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <div class="toolbar-left">
+        <div class="btn-group filter-group" role="group">
+            <button class="btn btn-outline-secondary active" onclick="filtrarTipo('')"             id="ft-todos">Todos</button>
+            <button class="btn btn-outline-secondary" onclick="filtrarTipo('preventiva')"          id="ft-prev">Preventiva</button>
+            <button class="btn btn-outline-secondary" onclick="filtrarTipo('corretiva')"           id="ft-corr">Corretiva</button>
+            <button class="btn btn-outline-secondary" onclick="filtrarTipo('preditiva')"           id="ft-pred">Preditiva</button>
+        </div>
+        <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" class="search-input" id="search-manut" placeholder="Buscar manutenção…" oninput="aplicarBusca()">
+        </div>
+    </div>
+    <div class="toolbar-right">
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
+            <i class="bi bi-plus-lg me-1"></i>Nova Manutenção
+        </button>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Dispositivo</th>
+                <th>Tipo</th>
+                <th>Técnico</th>
+                <th>Início</th>
+                <th>Conclusão</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="manut-body">
+            <tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal: Nova Manutenção -->
+<div class="modal fade" id="modal-novo" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Nova Manutenção</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Dispositivo <span class="text-danger">*</span></label>
+                        <select id="f-dispositivo" class="form-select form-select-sm">
+                            <option value="">Selecione um dispositivo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Técnico responsável <span class="text-danger">*</span></label>
+                        <select id="f-tecnico" class="form-select form-select-sm">
+                            <option value="">Selecione um técnico</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                        <select id="f-tipo" class="form-select form-select-sm">
+                            <option value="preventiva">Preventiva</option>
+                            <option value="corretiva">Corretiva</option>
+                            <option value="preditiva">Preditiva</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data de início <span class="text-danger">*</span></label>
+                        <input type="datetime-local" id="f-inicio" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data de conclusão</label>
+                        <input type="datetime-local" id="f-fim" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descrição <span class="text-danger">*</span></label>
+                        <textarea id="f-descricao" class="form-control form-control-sm" rows="3" placeholder="Descreva o serviço realizado…"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="criar()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Editar Manutenção -->
+<div class="modal fade" id="modal-editar" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Editar Manutenção</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="e-id">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Dispositivo <span class="text-danger">*</span></label>
+                        <select id="e-dispositivo" class="form-select form-select-sm">
+                            <option value="">Selecione um dispositivo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Técnico responsável <span class="text-danger">*</span></label>
+                        <select id="e-tecnico" class="form-select form-select-sm">
+                            <option value="">Selecione um técnico</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                        <select id="e-tipo" class="form-select form-select-sm">
+                            <option value="preventiva">Preventiva</option>
+                            <option value="corretiva">Corretiva</option>
+                            <option value="preditiva">Preditiva</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data de início <span class="text-danger">*</span></label>
+                        <input type="datetime-local" id="e-inicio" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data de conclusão</label>
+                        <input type="datetime-local" id="e-fim" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descrição <span class="text-danger">*</span></label>
+                        <textarea id="e-descricao" class="form-control form-control-sm" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" onclick="salvarEdicao()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let todasManut  = [];
+    let dispMap     = {};
+    let tecnicoMap  = {};
+    let manutRows   = [];
+    let filtroTipo  = '';
+    let termoBusca  = '';
+
+    const TIPO_INFO = {
+        preventiva: { label: 'Preventiva', cor: '#16a34a', bg: '#f0fdf4' },
+        corretiva:  { label: 'Corretiva',  cor: '#dc2626', bg: '#fef2f2' },
+        preditiva:  { label: 'Preditiva',  cor: '#3b82f6', bg: '#eff6ff' },
+    };
+
+    function tipoBadge(t) {
+        const { label, cor, bg } = TIPO_INFO[t] || { label: t, cor: '#64748b', bg: '#f1f5f9' };
+        return `<span class="status-badge" style="background:${bg};color:${cor};border-color:transparent;">${label}</span>`;
+    }
+
+    function fmtDT(dt) {
+        if (!dt) return '—';
+        return new Date(dt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    // Converte datetime-local string para ISO (adiciona :00 se necessário)
+    function toISO(val) {
+        if (!val) return null;
+        return val.length === 16 ? val + ':00' : val;
+    }
+
+    // Converte ISO para formato datetime-local (remove :00 dos segundos)
+    function toLocal(iso) {
+        if (!iso) return '';
+        return iso.slice(0, 16);
+    }
+
+    function aplicarBusca() {
+        termoBusca = document.getElementById('search-manut').value.toLowerCase();
+        aplicarFiltros();
+    }
+
+    function filtrarTipo(tipo) {
+        filtroTipo = tipo;
+        document.querySelectorAll('.filter-group .btn').forEach(b => b.classList.remove('active'));
+        const ids = { '': 'ft-todos', 'preventiva': 'ft-prev', 'corretiva': 'ft-corr', 'preditiva': 'ft-pred' };
+        document.getElementById(ids[tipo] || 'ft-todos')?.classList.add('active');
+        aplicarFiltros();
+    }
+
+    function aplicarFiltros() {
+        let rows = manutRows;
+        if (filtroTipo) rows = rows.filter(r => r.tipo === filtroTipo);
+        if (termoBusca) rows = rows.filter(r => r.termo.includes(termoBusca));
+        renderRows(rows);
+    }
+
+    function renderRows(rows) {
+        const tbody = document.getElementById('manut-body');
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="7">
+                <div class="empty-state">
+                    <i class="bi bi-tools empty-state-icon"></i>
+                    <p class="empty-state-title">Nenhuma manutenção encontrada</p>
+                    <p class="empty-state-sub">Registre uma nova manutenção ou ajuste os filtros.</p>
+                </div>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map(r => r.html).join('');
+    }
+
+    async function carregar() {
+        const [resManut, resDisp, resUsr] = await Promise.all([
+            authFetch(`${API}/manutencoes/`).then(r => r.json()),
+            authFetch(`${API}/dispositivos/`).then(r => r.json()),
+            authFetch(`${API}/usuarios/`).then(r => r.json()),
+        ]);
+
+        todasManut    = Array.isArray(resManut) ? resManut : (resManut.results || []);
+        const dispArr = Array.isArray(resDisp)  ? resDisp  : (resDisp.results  || []);
+        const usrArr  = Array.isArray(resUsr)   ? resUsr   : (resUsr.results   || []);
+
+        // Mapas para display
+        dispArr.forEach(d => {
+            dispMap[d.id] = [d.tipo, d.marca, d.codigo_qr].filter(Boolean).join(' ').trim() || `#${d.id}`;
+        });
+        usrArr.filter(u => ['tecnico','admin_entidade','admin_geral'].includes(u.perfil)).forEach(u => {
+            const nome = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email;
+            tecnicoMap[u.id] = nome;
+        });
+
+        manutRows = todasManut.map(m => {
+            const dispNome = dispMap[m.dispositivo] || `#${m.dispositivo}`;
+            const tecNome  = tecnicoMap[m.tecnico]  || `#${m.tecnico}`;
+            const concluida = m.data_fim ? `<span class="status-badge badge-resolvido">Concluída</span>` : `<span class="status-badge badge-assumido">Em aberto</span>`;
+            const html = `<tr>
+                <td class="text-muted fw-medium">#${m.id}</td>
+                <td>
+                    <span class="fw-medium">${dispNome}</span>
+                    ${m.descricao ? `<br><small class="text-muted" style="font-size:.75rem;">${m.descricao.length > 55 ? m.descricao.slice(0,55)+'…' : m.descricao}</small>` : ''}
+                </td>
+                <td>${tipoBadge(m.tipo)}</td>
+                <td><span class="tag-badge"><i class="bi bi-person" style="font-size:.7rem;"></i>${tecNome}</span></td>
+                <td class="text-muted">${fmtDT(m.data_inicio)}</td>
+                <td>${m.data_fim ? `<span class="text-muted">${fmtDT(m.data_fim)}</span>` : concluida}</td>
+                <td>
+                    <div class="d-flex gap-1 justify-content-end">
+                        <button class="btn-action" onclick="abrirEdicao(${m.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-action btn-action-danger" onclick="excluir(${m.id})" title="Excluir"><i class="bi bi-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+            return {
+                id: m.id,
+                tipo: m.tipo,
+                termo: `${dispNome} ${tecNome} ${m.descricao || ''}`.toLowerCase(),
+                html,
+            };
+        });
+
+        aplicarFiltros();
+        popularSelects(dispArr, usrArr);
+    }
+
+    function popularSelects(dispArr, usrArr) {
+        ['f-dispositivo', 'e-dispositivo'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">Selecione um dispositivo</option>';
+            dispArr.forEach(d => { sel.innerHTML += `<option value="${d.id}">${dispMap[d.id]}</option>`; });
+        });
+        const tecnicos = usrArr.filter(u => ['tecnico','admin_entidade','admin_geral'].includes(u.perfil));
+        ['f-tecnico', 'e-tecnico'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">Selecione um técnico</option>';
+            tecnicos.forEach(u => { sel.innerHTML += `<option value="${u.id}">${tecnicoMap[u.id]}</option>`; });
+        });
+    }
+
+    async function criar() {
+        const disp    = document.getElementById('f-dispositivo').value;
+        const tecnico = document.getElementById('f-tecnico').value;
+        const inicio  = document.getElementById('f-inicio').value;
+        const desc    = document.getElementById('f-descricao').value.trim();
+        if (!disp || !tecnico || !inicio || !desc) {
+            toast('Dispositivo, técnico, data de início e descrição são obrigatórios.', 'warn');
+            return;
+        }
+        const fim = document.getElementById('f-fim').value;
+        const res = await authFetch(`${API}/manutencoes/`, {
+            method: 'POST',
+            body: JSON.stringify({
+                dispositivo: parseInt(disp),
+                tecnico:     parseInt(tecnico),
+                tipo:        document.getElementById('f-tipo').value,
+                descricao:   desc,
+                data_inicio: toISO(inicio),
+                data_fim:    toISO(fim),
+            }),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
+            ['f-descricao','f-inicio','f-fim'].forEach(id => document.getElementById(id).value = '');
+            await carregar();
+            toast('Manutenção registrada!', 'success');
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast(Object.values(err).flat()[0] || 'Erro ao registrar manutenção.', 'error');
+        }
+    }
+
+    function abrirEdicao(id) {
+        const m = todasManut.find(x => x.id === id);
+        if (!m) return;
+        document.getElementById('e-id').value          = m.id;
+        document.getElementById('e-dispositivo').value = m.dispositivo || '';
+        document.getElementById('e-tecnico').value     = m.tecnico || '';
+        document.getElementById('e-tipo').value        = m.tipo || 'preventiva';
+        document.getElementById('e-inicio').value      = toLocal(m.data_inicio);
+        document.getElementById('e-fim').value         = toLocal(m.data_fim);
+        document.getElementById('e-descricao').value   = m.descricao || '';
+        new bootstrap.Modal(document.getElementById('modal-editar')).show();
+    }
+
+    async function salvarEdicao() {
+        const id      = document.getElementById('e-id').value;
+        const disp    = document.getElementById('e-dispositivo').value;
+        const tecnico = document.getElementById('e-tecnico').value;
+        const inicio  = document.getElementById('e-inicio').value;
+        const desc    = document.getElementById('e-descricao').value.trim();
+        if (!disp || !tecnico || !inicio || !desc) {
+            toast('Dispositivo, técnico, data de início e descrição são obrigatórios.', 'warn');
+            return;
+        }
+        const fim = document.getElementById('e-fim').value;
+        const res = await authFetch(`${API}/manutencoes/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                dispositivo: parseInt(disp),
+                tecnico:     parseInt(tecnico),
+                tipo:        document.getElementById('e-tipo').value,
+                descricao:   desc,
+                data_inicio: toISO(inicio),
+                data_fim:    toISO(fim),
+            }),
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modal-editar')).hide();
+            await carregar();
+            toast('Manutenção atualizada.', 'success');
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast(Object.values(err).flat()[0] || 'Erro ao salvar.', 'error');
+        }
+    }
+
+    async function excluir(id) {
+        if (!await confirmar('Excluir este registro de manutenção?')) return;
+        const res = await authFetch(`${API}/manutencoes/${id}/`, { method: 'DELETE' });
+        if (res.ok || res.status === 204) { await carregar(); toast('Registro excluído.', 'default'); }
+        else toast('Não foi possível excluir.', 'error');
+    }
+
+    document.addEventListener('DOMContentLoaded', carregar);
+</script>
+{% endblock %}

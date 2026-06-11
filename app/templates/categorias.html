@@ -179,7 +179,7 @@
     }
 
     async function excluir(id) {
-        if (!confirm('Excluir esta categoria?')) return;
+        if (!await confirmar('Excluir esta categoria?')) return;
         const res = await authFetch(`${API}/categorias/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) {
             await carregar();

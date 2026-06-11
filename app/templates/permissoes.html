@@ -251,7 +251,7 @@
     }
 
     async function excluirPermissao(id) {
-        if (!confirm('Excluir esta permissão? As atribuições vinculadas serão removidas.')) return;
+        if (!await confirmar('Excluir esta permissão? As atribuições vinculadas serão removidas.')) return;
         const res = await authFetch(`${API}/permissoes/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) {
             await carregar();
@@ -281,7 +281,7 @@
     }
 
     async function revogar(id) {
-        if (!confirm('Revogar esta atribuição?')) return;
+        if (!await confirmar('Revogar esta atribuição?', { titulo: 'Confirmar revogação', btnTexto: 'Revogar' })) return;
         const res = await authFetch(`${API}/usuario-permissoes/${id}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) {
             await carregar();

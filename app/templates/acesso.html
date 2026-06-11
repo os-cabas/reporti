@@ -1,0 +1,452 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#2563EB">
+    <title>Entrar — ReporTi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #F0F5FF;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Brand ─────────────────────────────────────── */
+        .brand {
+            background: linear-gradient(145deg, #3B82F6 0%, #1D4ED8 100%);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2.75rem 1.5rem 2.25rem;
+            text-align: center;
+        }
+        .brand-icon {
+            width: 68px; height: 68px;
+            background: rgba(255,255,255,.18);
+            border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.875rem;
+            margin-bottom: .875rem;
+        }
+        .brand-name {
+            font-size: 2rem; font-weight: 800;
+            letter-spacing: -.5px; margin: 0 0 .25rem;
+        }
+        .brand-sub {
+            font-size: .9375rem; opacity: .82; margin: 0;
+        }
+
+        /* ── Content area ───────────────────────────────── */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.375rem;
+            width: 100%; max-width: 460px;
+            margin: 0 auto;
+        }
+
+        /* ── Google button ──────────────────────────────── */
+        .btn-google {
+            width: 100%;
+            padding: .9375rem 1.25rem;
+            border: 1.5px solid #D1D9E6;
+            border-radius: 14px;
+            background: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem; font-weight: 600;
+            color: #1E293B;
+            display: flex; align-items: center; justify-content: center; gap: .625rem;
+            cursor: pointer;
+            transition: background .15s, border-color .15s, transform .1s;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        }
+        .btn-google:hover  { background: #F8FAFF; border-color: #B8C4D9; }
+        .btn-google:active { transform: scale(.98); }
+        .btn-google:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+        /* ── Primary button ─────────────────────────────── */
+        .btn-send {
+            width: 100%;
+            padding: .9375rem 1.25rem;
+            border: none; border-radius: 14px;
+            background: #2563EB;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem; font-weight: 600;
+            color: #fff;
+            display: flex; align-items: center; justify-content: center; gap: .5rem;
+            cursor: pointer;
+            transition: background .15s, transform .1s;
+            -webkit-tap-highlight-color: transparent;
+            margin-top: .625rem;
+        }
+        .btn-send:hover  { background: #1D4ED8; }
+        .btn-send:active { transform: scale(.98); }
+        .btn-send:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+        /* ── Divider ────────────────────────────────────── */
+        .divider {
+            display: flex; align-items: center; gap: .75rem;
+            margin: 1.5rem 0 1.25rem;
+            color: #94A3B8; font-size: .8125rem;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1; height: 1px; background: #D1D9E6;
+        }
+
+        /* ── Input ──────────────────────────────────────── */
+        .field-label {
+            display: block;
+            font-size: .8125rem; font-weight: 600; color: #475569;
+            margin-bottom: .4rem;
+        }
+        .input-field {
+            width: 100%;
+            padding: .875rem 1rem;
+            border: 1.5px solid #D1D9E6; border-radius: 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem; /* prevents iOS auto-zoom */
+            color: #1E293B; background: #fff;
+            outline: none;
+            transition: border-color .15s;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .input-field:focus { border-color: #3B82F6; }
+        .input-field::placeholder { color: #9FAABC; }
+
+        /* ── Error ──────────────────────────────────────── */
+        .alert-erro {
+            background: #FEF2F2; border: 1px solid #FECACA;
+            border-radius: 10px; color: #DC2626;
+            padding: .7rem 1rem; font-size: .875rem;
+            margin-top: .75rem; display: none;
+        }
+
+        /* ── Spinner ────────────────────────────────────── */
+        .spin {
+            width: 18px; height: 18px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: rot .65s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes rot { to { transform: rotate(360deg); } }
+
+        /* ── Wait screen ────────────────────────────────── */
+        .wait-screen {
+            flex: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center;
+            padding: 2rem 0;
+        }
+        .wait-icon {
+            width: 80px; height: 80px;
+            background: #DBEAFE; border-radius: 22px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.25rem; color: #2563EB;
+            margin: 0 auto 1.25rem;
+        }
+        .wait-title  { font-size: 1.375rem; font-weight: 700; color: #1E293B; margin: 0 0 .5rem; }
+        .wait-sub    { font-size: .9375rem; color: #64748B; margin: 0 0 1.75rem; line-height: 1.55; }
+
+        .spin-lg {
+            width: 48px; height: 48px;
+            border: 3.5px solid #DBEAFE;
+            border-top-color: #3B82F6;
+            border-radius: 50%;
+            animation: rot .7s linear infinite;
+            margin: 0 auto 1.25rem;
+        }
+
+        /* ── Dev button ─────────────────────────────────── */
+        .btn-dev {
+            width: 100%;
+            padding: .875rem 1.25rem;
+            border: 2px solid #F59E0B; border-radius: 14px;
+            background: #FFFBEB;
+            font-family: 'Inter', sans-serif;
+            font-size: .9375rem; font-weight: 600; color: #92400E;
+            cursor: pointer; text-decoration: none;
+            display: flex; align-items: center; justify-content: center; gap: .5rem;
+            -webkit-tap-highlight-color: transparent;
+            margin-bottom: .75rem;
+        }
+        .btn-dev:hover { background: #FEF3C7; }
+
+        /* ── Muted link button ──────────────────────────── */
+        .btn-muted {
+            background: none; border: none;
+            color: #94A3B8; font-family: 'Inter', sans-serif;
+            font-size: .875rem; cursor: pointer;
+            padding: .625rem; width: 100%; text-align: center;
+        }
+        .btn-muted:hover { color: #64748B; }
+
+        /* ── Footer link ────────────────────────────────── */
+        .footer-note {
+            text-align: center; margin-top: auto; padding-top: 1.5rem;
+            font-size: .8125rem; color: #94A3B8;
+        }
+        .footer-note a { color: #3B82F6; font-weight: 600; text-decoration: none; }
+
+        /* ── Safe area (notch phones) ───────────────────── */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .content { padding-bottom: calc(1.75rem + env(safe-area-inset-bottom)); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Brand ──────────────────────────────────────────────────────────────── -->
+<div class="brand">
+    <div class="brand-icon"><i class="bi bi-ticket-fill"></i></div>
+    <p class="brand-name">ReporTi</p>
+    <p class="brand-sub">Abra um chamado em segundos</p>
+</div>
+
+<!-- ── Step 1: escolher método de acesso ──────────────────────────────────── -->
+<div class="content" id="step1">
+
+    <button class="btn-google" id="btn-google" onclick="loginGoogle()">
+        <svg width="20" height="20" viewBox="0 0 48 48" style="flex-shrink:0;">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Entrar com Google
+    </button>
+
+    <div class="alert-erro" id="google-erro">
+        <i class="bi bi-exclamation-circle me-1"></i><span id="google-erro-msg"></span>
+    </div>
+
+    <div class="divider">ou receba um link no e-mail</div>
+
+    <label class="field-label" for="magic-email">Seu e-mail institucional</label>
+    <input type="email" id="magic-email" class="input-field"
+           placeholder="voce@instituicao.edu.br"
+           autocomplete="email" inputmode="email">
+
+    <div class="alert-erro" id="magic-erro">
+        <i class="bi bi-exclamation-circle me-1"></i><span id="magic-erro-msg"></span>
+    </div>
+
+    <button class="btn-send" id="btn-magic" onclick="enviarMagicLink()">
+        <i class="bi bi-envelope-arrow-up"></i>Enviar link de acesso
+    </button>
+
+    <p class="footer-note">
+        Gestor ou técnico? <a href="/login/">Entre aqui</a>
+    </p>
+</div>
+
+<!-- ── Step 2: aguardar e-mail / verificando ───────────────────────────────── -->
+<div class="content" id="step2" style="display:none;">
+
+    <div class="wait-screen" id="wait-idle">
+        <div class="wait-icon"><i class="bi bi-envelope-paper"></i></div>
+        <p class="wait-title">Confira seu e-mail</p>
+        <p class="wait-sub">Enviamos um link de acesso.<br>Clique nele para entrar automaticamente.</p>
+    </div>
+
+    <div class="wait-screen" id="wait-loading" style="display:none;">
+        <div class="spin-lg"></div>
+        <p class="wait-title" style="font-size:1.125rem;">Verificando…</p>
+    </div>
+
+    <div id="debug-div" style="display:none;">
+        <a id="debug-link" href="#" class="btn-dev">
+            <i class="bi bi-bug"></i>Entrar agora (modo dev)
+        </a>
+    </div>
+
+    <div class="alert-erro" id="token-erro" style="margin-bottom:.75rem;"></div>
+
+    <button class="btn-muted" id="btn-voltar" onclick="voltarStep1()">
+        <i class="bi bi-arrow-left me-1"></i>Usar outro e-mail
+    </button>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+    if (localStorage.getItem('access')) window.location.href = '/';
+
+    const GOOGLE_CLIENT_ID = '{{ google_client_id }}';
+    let googleReady = false;
+    let googleBtnHtml = '';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        googleBtnHtml = document.getElementById('btn-google').innerHTML;
+        inicializarGoogle();
+    });
+
+    function inicializarGoogle() {
+        if (googleReady || !GOOGLE_CLIENT_ID || !window.google) return;
+        googleReady = true;
+        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
+    }
+
+    function resetarBtnGoogle() {
+        const btn = document.getElementById('btn-google');
+        btn.disabled = false;
+        btn.innerHTML = googleBtnHtml;
+    }
+
+    function mostrarErroGoogle(msg) {
+        resetarBtnGoogle();
+        document.getElementById('google-erro-msg').textContent = msg;
+        document.getElementById('google-erro').style.display = 'block';
+    }
+
+    function loginGoogle() {
+        if (!GOOGLE_CLIENT_ID) { mostrarErroGoogle('Google OAuth não configurado neste ambiente.'); return; }
+        if (!window.google)    { mostrarErroGoogle('Biblioteca do Google não carregada. Verifique sua conexão.'); return; }
+        inicializarGoogle();
+        document.getElementById('google-erro').style.display = 'none';
+        const btn = document.getElementById('btn-google');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spin" style="color:#94A3B8;"></span>Aguardando…';
+        google.accounts.id.prompt(notif => {
+            if (notif.isNotDisplayed()) {
+                const motivo = notif.getNotDisplayedReason();
+                const msg = motivo === 'unregistered_origin'
+                    ? 'Domínio não autorizado. Adicione http://127.0.0.1:8000 nas Origens JavaScript autorizadas no Google Cloud Console.'
+                    : `Login com Google indisponível (${motivo}).`;
+                mostrarErroGoogle(msg);
+            } else if (notif.isDismissedMoment() || notif.isSkippedMoment()) {
+                resetarBtnGoogle();
+            }
+        });
+    }
+
+    async function handleGoogleCredential(response) {
+        const btn = document.getElementById('btn-google');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spin" style="color:#94A3B8;"></span>Verificando…';
+        document.getElementById('google-erro').style.display = 'none';
+
+        const res = await fetch('/api/auth/google/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_token: response.credential }),
+        });
+
+        if (res.ok) {
+            salvarSessao(await res.json());
+        } else {
+            const data = await res.json().catch(() => ({}));
+            mostrarErroGoogle(data.erro || data.detail || 'Falha na autenticação com Google.');
+        }
+    }
+
+    async function enviarMagicLink() {
+        const email = document.getElementById('magic-email').value.trim();
+        if (!email) { document.getElementById('magic-email').focus(); return; }
+
+        const btn  = document.getElementById('btn-magic');
+        const erro = document.getElementById('magic-erro');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spin" style="color:rgba(255,255,255,.7);"></span>Enviando…';
+        erro.style.display = 'none';
+
+        const res = await fetch('/api/auth/magic-link/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = '';
+            if (data.debug_link) {
+                document.getElementById('debug-link').href = data.debug_link;
+                document.getElementById('debug-div').style.display = 'block';
+            }
+        } else {
+            const data = await res.json().catch(() => ({}));
+            const msgs = Object.values(data).flat();
+            document.getElementById('magic-erro-msg').textContent =
+                msgs.length ? msgs[0] : 'Não foi possível enviar. Verifique o e-mail.';
+            erro.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-envelope-arrow-up"></i>Enviar link de acesso';
+        }
+    }
+
+    async function verificarToken(token) {
+        if (!token) return;
+        document.getElementById('wait-idle').style.display = 'none';
+        document.getElementById('wait-loading').style.display = 'flex';
+        document.getElementById('btn-voltar').style.display = 'none';
+        document.getElementById('debug-div').style.display = 'none';
+        document.getElementById('token-erro').style.display = 'none';
+
+        const res = await fetch('/api/auth/magic-link/verificar/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+        });
+
+        if (res.ok) {
+            salvarSessao(await res.json());
+        } else {
+            const data = await res.json().catch(() => ({}));
+            const tokenErro = document.getElementById('token-erro');
+            tokenErro.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' +
+                (data.erro || data.detail || 'Token inválido ou expirado.');
+            tokenErro.style.display = 'block';
+            document.getElementById('wait-loading').style.display = 'none';
+            document.getElementById('wait-idle').style.display = 'flex';
+            document.getElementById('btn-voltar').style.display = '';
+        }
+    }
+
+    function voltarStep1() {
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step1').style.display = '';
+        document.getElementById('token-erro').style.display = 'none';
+        document.getElementById('wait-loading').style.display = 'none';
+        document.getElementById('wait-idle').style.display = 'flex';
+        document.getElementById('debug-div').style.display = 'none';
+        document.getElementById('btn-voltar').style.display = '';
+        const btn = document.getElementById('btn-magic');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-envelope-arrow-up"></i>Enviar link de acesso';
+    }
+
+    function salvarSessao(data) {
+        localStorage.setItem('access',  data.access);
+        localStorage.setItem('refresh', data.refresh);
+        if (data.usuario) localStorage.setItem('usuario', JSON.stringify(data.usuario));
+        window.location.href = '/meus-reportes/';
+    }
+
+    // Quando o link do e-mail trouxer ?token=, verificar automaticamente
+    const urlToken = new URLSearchParams(window.location.search).get('token');
+    if (urlToken) {
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = '';
+        verificarToken(urlToken);
+    }
+</script>
+</body>
+</html>

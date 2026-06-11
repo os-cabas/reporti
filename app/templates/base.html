@@ -14,6 +14,8 @@
 </head>
 <body>
 
+<div class="sidebar-overlay" onclick="fecharSidebar()"></div>
+
 <nav class="sidebar">
     <div class="sidebar-top">
         <a href="/" class="brand">
@@ -30,30 +32,33 @@
             <i class="bi bi-ticket-perforated"></i>Tickets
         </a>
 
-        <div class="nav-section-label">Infraestrutura</div>
-        <a href="/dispositivos/" class="nav-link {% block nav_dispositivos %}{% endblock %}">
+        <div class="nav-section-label" id="nav-label-infra">Infraestrutura</div>
+        <a href="/dispositivos/" class="nav-link {% block nav_dispositivos %}{% endblock %}" data-min-perfil="tecnico">
             <i class="bi bi-pc-display"></i>Dispositivos
         </a>
-        <a href="/salas/" class="nav-link {% block nav_salas %}{% endblock %}">
+        <a href="/salas/" class="nav-link {% block nav_salas %}{% endblock %}" data-min-perfil="tecnico">
             <i class="bi bi-door-open"></i>Salas
         </a>
-        <a href="/entidades/" class="nav-link {% block nav_entidades %}{% endblock %}">
+        <a href="/entidades/" class="nav-link {% block nav_entidades %}{% endblock %}" data-min-perfil="admin_entidade">
             <i class="bi bi-building"></i>Entidades
         </a>
+        <a href="/manutencoes/" class="nav-link {% block nav_manutencoes %}{% endblock %}" data-min-perfil="tecnico">
+            <i class="bi bi-tools"></i>Manutenções
+        </a>
 
-        <div class="nav-section-label">Cadastros</div>
-        <a href="/categorias/" class="nav-link {% block nav_categorias %}{% endblock %}">
+        <div class="nav-section-label" id="nav-label-cadastros">Cadastros</div>
+        <a href="/categorias/" class="nav-link {% block nav_categorias %}{% endblock %}" data-min-perfil="tecnico">
             <i class="bi bi-tags"></i>Categorias
         </a>
-        <a href="/modelos/" class="nav-link {% block nav_modelos %}{% endblock %}">
+        <a href="/modelos/" class="nav-link {% block nav_modelos %}{% endblock %}" data-min-perfil="tecnico">
             <i class="bi bi-box"></i>Modelos
         </a>
 
-        <div class="nav-section-label">Admin</div>
-        <a href="/usuarios/" class="nav-link {% block nav_usuarios %}{% endblock %}">
+        <div class="nav-section-label" id="nav-label-admin">Admin</div>
+        <a href="/usuarios/" class="nav-link {% block nav_usuarios %}{% endblock %}" data-min-perfil="admin_entidade">
             <i class="bi bi-people"></i>Usuários
         </a>
-        <a href="/permissoes/" class="nav-link {% block nav_permissoes %}{% endblock %}">
+        <a href="/permissoes/" class="nav-link {% block nav_permissoes %}{% endblock %}" data-min-perfil="admin_geral">
             <i class="bi bi-shield-check"></i>Permissões
         </a>
     </div>
@@ -67,10 +72,18 @@
 
 <div class="main-wrapper">
     <header class="page-header">
-        <h5>{% block page_title %}{% endblock %}</h5>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn-hamburger" onclick="abrirSidebar()" aria-label="Menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <h5 class="m-0">{% block page_title %}{% endblock %}</h5>
+        </div>
         <div class="page-header-user">
             <div class="user-avatar" id="user-avatar">—</div>
-            <span id="current-user"></span>
+            <div>
+                <div id="current-user" style="font-size:.875rem;font-weight:600;line-height:1.3;"></div>
+                <div id="user-perfil" class="text-muted" style="font-size:.72rem;"></div>
+            </div>
         </div>
     </header>
     <main class="page-content">
@@ -78,14 +91,47 @@
     </main>
 </div>
 
-<!-- Toast container -->
+<!-- Modal: Confirmação global -->
+<div class="modal fade" id="modal-confirmar" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-1">
+                <h6 class="modal-title" id="confirmar-titulo">Confirmar</h6>
+            </div>
+            <div class="modal-body pt-1">
+                <p class="mb-0 text-secondary" id="confirmar-msg" style="font-size:.875rem;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-danger" id="confirmar-ok">Excluir</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="toast-stack" id="toast-stack"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const API = '/api';
 
-    function getToken() { return localStorage.getItem('access'); }
+    const PERFIL_ORDEM = { comum: 0, tecnico: 1, admin_entidade: 2, admin_geral: 3 };
+    const PERFIL_LABEL = {
+        comum:          'Usuário Comum',
+        tecnico:        'Técnico',
+        admin_entidade: 'Admin. da Entidade',
+        admin_geral:    'Administrador Geral',
+    };
+
+    function getToken()   { return localStorage.getItem('access'); }
+    function getUsuario() {
+        try { return JSON.parse(localStorage.getItem('usuario') || '{}'); }
+        catch { return {}; }
+    }
+    function getPerfilNivel() { return PERFIL_ORDEM[getUsuario().perfil] ?? 0; }
+
+    function abrirSidebar() { document.body.classList.add('sidebar-open'); }
+    function fecharSidebar() { document.body.classList.remove('sidebar-open'); }
 
     function logout() {
         localStorage.clear();
@@ -119,14 +165,59 @@
         }, duration);
     }
 
+    function confirmar(mensagem, { titulo = 'Confirmar exclusão', btnTexto = 'Excluir', btnClasse = 'btn-danger' } = {}) {
+        return new Promise(resolve => {
+            const modalEl = document.getElementById('modal-confirmar');
+            document.getElementById('confirmar-msg').textContent    = mensagem;
+            document.getElementById('confirmar-titulo').textContent = titulo;
+            const btnOk = document.getElementById('confirmar-ok');
+            btnOk.textContent = btnTexto;
+            btnOk.className   = `btn btn-sm ${btnClasse}`;
+
+            let confirmado = false;
+            btnOk.onclick = () => { confirmado = true; modal.hide(); };
+            modalEl.addEventListener('hidden.bs.modal', () => resolve(confirmado), { once: true });
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         if (!getToken()) { window.location.href = '/login/'; return; }
-        const username = localStorage.getItem('username') || '';
-        if (username) {
-            document.getElementById('current-user').textContent = username;
-            const initials = username.slice(0, 2).toUpperCase();
-            document.getElementById('user-avatar').textContent = initials;
+
+        const usuario = getUsuario();
+        const nome   = usuario.nome || usuario.email || '';
+        const perfil = usuario.perfil || 'comum';
+
+        if (perfil === 'comum') { window.location.href = '/meus-reportes/'; return; }
+        const nivel  = PERFIL_ORDEM[perfil] ?? 0;
+
+        if (nome) {
+            document.getElementById('current-user').textContent = nome;
+            document.getElementById('user-avatar').textContent  = nome.slice(0, 2).toUpperCase();
         }
+        document.getElementById('user-perfil').textContent = PERFIL_LABEL[perfil] || perfil;
+
+        // Ocultar links que exigem perfil superior ao do usuário
+        document.querySelectorAll('[data-min-perfil]').forEach(el => {
+            const min = PERFIL_ORDEM[el.dataset.minPerfil] ?? 99;
+            el.style.display = nivel >= min ? '' : 'none';
+        });
+
+        // Ocultar rótulo de seção quando todos os seus links estão ocultos
+        [
+            { id: 'nav-label-infra',     hrefs: ['/dispositivos/', '/salas/', '/entidades/', '/manutencoes/'] },
+            { id: 'nav-label-cadastros', hrefs: ['/categorias/', '/modelos/'] },
+            { id: 'nav-label-admin',     hrefs: ['/usuarios/', '/permissoes/'] },
+        ].forEach(({ id, hrefs }) => {
+            const visivel = hrefs.some(href => {
+                const link = document.querySelector(`a[href="${href}"][data-min-perfil]`);
+                return link && link.style.display !== 'none';
+            });
+            const label = document.getElementById(id);
+            if (label) label.style.display = visivel ? '' : 'none';
+        });
     });
 </script>
 {% block scripts %}{% endblock %}

@@ -9,4 +9,4 @@ class DispositivoSerializer(serializers.ModelSerializer):
             'id', 'codigo_qr', 'patrimonio', 'tipo', 'marca',
             'modelo', 'numero_serie', 'situacao', 'sala', 'criado_em',
         ]
-        read_only_fields = ['criado_em']
+        read_only_fields = ['criado_em', 'codigo_qr']

@@ -20,7 +20,17 @@ from app.models.usuario import Usuario
 
 def _gerar_tokens(usuario):
     refresh = RefreshToken.for_user(usuario)
-    return {'refresh': str(refresh), 'access': str(refresh.access_token)}
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+        'usuario': {
+            'id': usuario.pk,
+            'nome': usuario.get_full_name() or usuario.username,
+            'email': usuario.email,
+            'perfil': usuario.perfil,
+            'entidade_id': usuario.entidade_id,
+        },
+    }
 
 
 def _username_unico(base: str) -> str:
@@ -103,24 +113,26 @@ class MagicLinkSolicitarView(APIView):
             return Response({'erro': 'Campo email é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
         token_obj = MagicLinkToken.gerar(email)
-        link = request.build_absolute_uri(
-            f'/api/auth/magic-link/verificar/?token={token_obj.token}'
-        )
+        link = request.build_absolute_uri(f'/acesso/?token={token_obj.token}')
 
-        send_mail(
-            subject='Seu link de acesso – ReporTi',
-            message=(
-                f'Olá!\n\n'
-                f'Clique no link abaixo para acessar o sistema (válido por 15 minutos):\n\n'
-                f'{link}\n\n'
-                f'Se você não solicitou este acesso, ignore este e-mail.'
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
-        )
+        if not settings.DEBUG:
+            send_mail(
+                subject='Seu link de acesso – ReporTi',
+                message=(
+                    f'Olá!\n\n'
+                    f'Clique no link abaixo para acessar o sistema (válido por 15 minutos):\n\n'
+                    f'{link}\n\n'
+                    f'Se você não solicitou este acesso, ignore este e-mail.'
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
 
-        return Response({'mensagem': 'Link enviado para o e-mail informado.'})
+        resposta = {'mensagem': 'Link enviado para o e-mail informado.'}
+        if settings.DEBUG:
+            resposta['debug_link'] = link
+        return Response(resposta)
 
 
 class MagicLinkVerificarView(APIView):

@@ -13,7 +13,7 @@ class Ticket(models.Model):
     ]
 
     titulo = models.CharField(max_length=200)
-    descricao = models.TextField()
+    descricao = models.TextField(blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS, default='aberto')
     usuario = models.ForeignKey(
         Usuario,

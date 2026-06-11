@@ -1,0 +1,257 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#2563EB">
+    <title>Reportar Problema — ReporTi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0; font-family: 'Inter', sans-serif;
+            background: #F0F5FF; min-height: 100dvh;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 1.5rem 1rem 2rem;
+        }
+
+        .brand {
+            display: flex; align-items: center; gap: .4rem;
+            font-weight: 800; font-size: 1.1rem; color: #1E293B;
+            margin-bottom: 1.5rem; align-self: flex-start;
+        }
+        .brand i { color: #2563EB; font-size: 1.25rem; }
+
+        .card {
+            background: #fff; border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.08);
+            padding: 1.5rem; width: 100%; max-width: 420px;
+        }
+
+        .device-header {
+            display: flex; align-items: center; gap: .75rem;
+            padding-bottom: 1rem; border-bottom: 1px solid #F1F5F9; margin-bottom: 1rem;
+        }
+        .device-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            background: #EFF6FF; display: flex; align-items: center; justify-content: center;
+            color: #2563EB; font-size: 1.4rem; flex-shrink: 0;
+        }
+        .device-name { font-weight: 700; font-size: 1rem; color: #1E293B; }
+        .device-meta { font-size: .8rem; color: #64748B; margin-top: .15rem; }
+
+        .info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: .85rem; padding: .35rem 0;
+            border-bottom: 1px solid #F8FAFC;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #64748B; }
+        .info-value { font-weight: 500; color: #1E293B; }
+
+        .badge-situacao {
+            font-size: .75rem; font-weight: 600; padding: .2rem .55rem;
+            border-radius: 999px;
+        }
+        .badge-operacional   { background: #DCFCE7; color: #15803D; }
+        .badge-em_manutencao { background: #FEF3C7; color: #B45309; }
+        .badge-reservado     { background: #EDE9FE; color: #7C3AED; }
+        .badge-inativo       { background: #F1F5F9; color: #64748B; }
+        .badge-descartado    { background: #FEE2E2; color: #DC2626; }
+
+        .section-title {
+            font-weight: 700; font-size: .9rem; color: #1E293B;
+            margin: 1.25rem 0 .75rem;
+        }
+
+        label { font-size: .85rem; font-weight: 500; color: #374151; display: block; margin-bottom: .3rem; }
+        input, textarea, select {
+            width: 100%; border: 1px solid #E2E8F0; border-radius: 8px;
+            padding: .55rem .75rem; font-family: inherit; font-size: .9rem; color: #1E293B;
+            background: #F8FAFC; outline: none; transition: border-color .15s;
+        }
+        input:focus, textarea:focus, select:focus { border-color: #2563EB; background: #fff; }
+        textarea { resize: vertical; min-height: 90px; }
+
+        .mb { margin-bottom: .85rem; }
+
+        .btn-submit {
+            width: 100%; padding: .75rem; border: none; border-radius: 10px;
+            background: #2563EB; color: #fff; font-family: inherit;
+            font-size: .95rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: .5rem;
+            margin-top: 1.25rem; transition: background .15s;
+        }
+        .btn-submit:hover:not(:disabled) { background: #1D4ED8; }
+        .btn-submit:disabled { opacity: .6; cursor: not-allowed; }
+
+        .alert {
+            border-radius: 10px; padding: .75rem 1rem;
+            font-size: .85rem; margin-bottom: 1rem;
+        }
+        .alert-error   { background: #FEE2E2; color: #B91C1C; }
+        .alert-success { background: #DCFCE7; color: #15803D; }
+        .alert-warn    { background: #FEF3C7; color: #92400E; }
+
+        .not-found {
+            text-align: center; padding: 2rem 1rem; color: #64748B;
+        }
+        .not-found i { font-size: 3rem; color: #CBD5E1; display: block; margin-bottom: .75rem; }
+
+        .login-prompt {
+            text-align: center; padding: 1.5rem 0 .5rem;
+        }
+        .btn-login {
+            display: inline-flex; align-items: center; gap: .4rem;
+            background: #2563EB; color: #fff; border: none; border-radius: 8px;
+            padding: .6rem 1.25rem; font-family: inherit; font-size: .9rem;
+            font-weight: 600; cursor: pointer; text-decoration: none;
+        }
+
+        .spin { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4);
+            border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="brand">
+        <i class="bi bi-clipboard2-pulse-fill"></i> ReporTi
+    </div>
+
+    {% if dispositivo %}
+    <div class="card">
+        <div class="device-header">
+            <div class="device-icon"><i class="bi bi-pc-display"></i></div>
+            <div>
+                <div class="device-name">{{ dispositivo.tipo|default:"Dispositivo" }} {% if dispositivo.marca %}{{ dispositivo.marca }}{% endif %}</div>
+                <div class="device-meta">Cód. {{ dispositivo.codigo_qr }}</div>
+            </div>
+        </div>
+
+        <div>
+            {% if dispositivo.sala %}
+            <div class="info-row">
+                <span class="info-label">Local</span>
+                <span class="info-value">{{ dispositivo.sala }}</span>
+            </div>
+            {% endif %}
+            {% if dispositivo.modelo %}
+            <div class="info-row">
+                <span class="info-label">Modelo</span>
+                <span class="info-value">{{ dispositivo.modelo }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div id="login-section" style="display:none;">
+            <div class="login-prompt">
+                <p style="font-size:.9rem;color:#64748B;margin-bottom:1rem;">
+                    Faça login para reportar um problema neste dispositivo.
+                </p>
+                <a class="btn-login" href="/acesso/?next=/r/{{ dispositivo.codigo_qr }}/">
+                    <i class="bi bi-box-arrow-in-right"></i> Entrar
+                </a>
+            </div>
+        </div>
+
+        <div id="form-section" style="display:none;">
+            <div class="section-title">Reportar problema</div>
+
+            <div id="alerta" class="alert" style="display:none;"></div>
+
+            <div class="mb">
+                <label for="titulo">Título <span style="color:#EF4444;">*</span></label>
+                <input type="text" id="titulo" placeholder="Ex: Computador não liga" maxlength="120">
+            </div>
+            <div class="mb">
+                <label for="descricao">Descrição</label>
+                <textarea id="descricao" placeholder="Descreva o problema com mais detalhes…"></textarea>
+            </div>
+
+            <button class="btn-submit" id="btn-enviar" onclick="enviar()">
+                <i class="bi bi-send"></i> Enviar reporte
+            </button>
+        </div>
+
+        <div id="sucesso-section" style="display:none; text-align:center; padding:1.5rem 0;">
+            <i class="bi bi-check-circle-fill" style="font-size:3rem;color:#22C55E;display:block;margin-bottom:.75rem;"></i>
+            <div style="font-weight:700;font-size:1.05rem;color:#1E293B;margin-bottom:.4rem;">Reporte enviado!</div>
+            <div style="font-size:.85rem;color:#64748B;">Um técnico irá analisar o problema em breve.</div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="card">
+        <div class="not-found">
+            <i class="bi bi-question-circle"></i>
+            <div style="font-weight:700;font-size:1rem;color:#1E293B;margin-bottom:.4rem;">Dispositivo não encontrado</div>
+            <div style="font-size:.85rem;">O código <strong>{{ codigo_qr }}</strong> não corresponde a nenhum equipamento cadastrado.</div>
+        </div>
+    </div>
+    {% endif %}
+
+<script>
+    const dispositivoId = {% if dispositivo %}{{ dispositivo.id }}{% else %}null{% endif %};
+
+    function getToken() { return localStorage.getItem('access'); }
+
+    function authFetch(url, opts = {}) {
+        return fetch(url, {
+            ...opts,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}`, ...(opts.headers || {}) },
+        });
+    }
+
+    function mostrarAlerta(msg, tipo) {
+        const el = document.getElementById('alerta');
+        el.className = `alert alert-${tipo}`;
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!dispositivoId) return;
+        if (!getToken()) {
+            document.getElementById('login-section').style.display = 'block';
+        } else {
+            document.getElementById('form-section').style.display = 'block';
+        }
+    });
+
+    async function enviar() {
+        const titulo    = document.getElementById('titulo').value.trim();
+        const descricao = document.getElementById('descricao').value.trim();
+        if (!titulo) { mostrarAlerta('Informe um título para o problema.', 'error'); return; }
+
+        const btn = document.getElementById('btn-enviar');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spin"></span> Enviando…';
+
+        const res = await authFetch('/api/tickets/', {
+            method: 'POST',
+            body: JSON.stringify({ titulo, descricao, dispositivo: dispositivoId }),
+        });
+
+        if (res.ok) {
+            document.getElementById('form-section').style.display = 'none';
+            document.getElementById('sucesso-section').style.display = 'block';
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send"></i> Enviar reporte';
+            const err = await res.json().catch(() => ({}));
+            if (res.status === 401) {
+                document.getElementById('form-section').style.display = 'none';
+                document.getElementById('login-section').style.display = 'block';
+            } else {
+                mostrarAlerta(Object.values(err).flat()[0] || 'Erro ao enviar reporte.', 'error');
+            }
+        }
+    }
+</script>
+</body>
+</html>
