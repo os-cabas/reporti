@@ -37,6 +37,7 @@
         </tbody>
     </table>
 </div>
+<div id="pag-usr"></div>
 
 <!-- Modal: Novo Usuário -->
 <div class="modal fade" id="modal-novo" tabindex="-1">
@@ -154,7 +155,10 @@
 <script>
     let todosUsuarios = [];
     let userRows      = [];
+    let rowsFiltrados = [];
     let entidadeMap   = {};
+    let paginaAtual   = 1;
+    const PAGE_SIZE   = 50;
 
     const PERFIL_INFO = {
         comum:          { label: 'Comum',          bg: '#f1f5f9', cor: '#64748b' },
@@ -170,12 +174,14 @@
 
     function aplicarBusca() {
         const termo = document.getElementById('search-usr').value.toLowerCase();
-        renderRows(termo ? userRows.filter(r => r.termo.includes(termo)) : userRows);
+        rowsFiltrados = termo ? userRows.filter(r => r.termo.includes(termo)) : userRows;
+        paginaAtual = 1;
+        renderRows();
     }
 
-    function renderRows(rows) {
+    function renderRows() {
         const tbody = document.getElementById('usuarios-body');
-        if (!rows.length) {
+        if (!rowsFiltrados.length) {
             tbody.innerHTML = `<tr><td colspan="7">
                 <div class="empty-state">
                     <i class="bi bi-people empty-state-icon"></i>
@@ -183,18 +189,26 @@
                     <p class="empty-state-sub">Crie o primeiro usuário do sistema.</p>
                 </div>
             </td></tr>`;
+            document.getElementById('pag-usr').innerHTML = '';
             return;
         }
-        tbody.innerHTML = rows.map(r => r.html).join('');
+        const inicio = (paginaAtual - 1) * PAGE_SIZE;
+        tbody.innerHTML = rowsFiltrados.slice(inicio, inicio + PAGE_SIZE).map(r => r.html).join('');
+        renderPaginacao('pag-usr', rowsFiltrados.length, paginaAtual, PAGE_SIZE, 'irParaPagina');
+    }
+
+    function irParaPagina(n) {
+        paginaAtual = n;
+        renderRows();
     }
 
     async function carregar() {
-        const [resUsr, resEnt] = await Promise.all([
-            authFetch(`${API}/usuarios/`).then(r => r.json()),
-            authFetch(`${API}/entidades/`).then(r => r.json()),
+        paginaAtual = 1;
+        const [todosUsrFetch, entArr] = await Promise.all([
+            fetchAll(`${API}/usuarios/`),
+            fetchAll(`${API}/entidades/`),
         ]);
-        todosUsuarios = Array.isArray(resUsr) ? resUsr : (resUsr.results || []);
-        const entArr  = Array.isArray(resEnt) ? resEnt : (resEnt.results || []);
+        todosUsuarios = todosUsrFetch;
         entidadeMap   = Object.fromEntries(entArr.map(e => [e.id, e.nome]));
 
         userRows = todosUsuarios.map(u => {
@@ -217,7 +231,8 @@
             return { id: u.id, email: u.email, termo: `${nome} ${u.email || ''} ${u.cargo || ''} ${entNome}`.toLowerCase(), html };
         });
 
-        renderRows(userRows);
+        rowsFiltrados = userRows;
+        renderRows();
 
         ['f-entidade', 'e-entidade'].forEach(selId => {
             const sel = document.getElementById(selId);

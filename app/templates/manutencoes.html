@@ -43,6 +43,7 @@
         </tbody>
     </table>
 </div>
+<div id="pag-manut"></div>
 
 <!-- Modal: Nova Manutenção -->
 <div class="modal fade" id="modal-novo" tabindex="-1">
@@ -152,12 +153,15 @@
 
 {% block scripts %}
 <script>
-    let todasManut  = [];
-    let dispMap     = {};
-    let tecnicoMap  = {};
-    let manutRows   = [];
-    let filtroTipo  = '';
-    let termoBusca  = '';
+    let todasManut    = [];
+    let dispMap       = {};
+    let tecnicoMap    = {};
+    let manutRows     = [];
+    let rowsFiltradas = [];
+    let filtroTipo    = '';
+    let termoBusca    = '';
+    let paginaAtual   = 1;
+    const PAGE_SIZE   = 50;
 
     const TIPO_INFO = {
         preventiva: { label: 'Preventiva', cor: '#16a34a', bg: '#f0fdf4' },
@@ -189,6 +193,7 @@
 
     function aplicarBusca() {
         termoBusca = document.getElementById('search-manut').value.toLowerCase();
+        paginaAtual = 1;
         aplicarFiltros();
     }
 
@@ -197,19 +202,20 @@
         document.querySelectorAll('.filter-group .btn').forEach(b => b.classList.remove('active'));
         const ids = { '': 'ft-todos', 'preventiva': 'ft-prev', 'corretiva': 'ft-corr', 'preditiva': 'ft-pred' };
         document.getElementById(ids[tipo] || 'ft-todos')?.classList.add('active');
+        paginaAtual = 1;
         aplicarFiltros();
     }
 
     function aplicarFiltros() {
-        let rows = manutRows;
-        if (filtroTipo) rows = rows.filter(r => r.tipo === filtroTipo);
-        if (termoBusca) rows = rows.filter(r => r.termo.includes(termoBusca));
-        renderRows(rows);
+        rowsFiltradas = manutRows;
+        if (filtroTipo) rowsFiltradas = rowsFiltradas.filter(r => r.tipo === filtroTipo);
+        if (termoBusca) rowsFiltradas = rowsFiltradas.filter(r => r.termo.includes(termoBusca));
+        renderRows();
     }
 
-    function renderRows(rows) {
+    function renderRows() {
         const tbody = document.getElementById('manut-body');
-        if (!rows.length) {
+        if (!rowsFiltradas.length) {
             tbody.innerHTML = `<tr><td colspan="7">
                 <div class="empty-state">
                     <i class="bi bi-tools empty-state-icon"></i>
@@ -217,21 +223,27 @@
                     <p class="empty-state-sub">Registre uma nova manutenção ou ajuste os filtros.</p>
                 </div>
             </td></tr>`;
+            document.getElementById('pag-manut').innerHTML = '';
             return;
         }
-        tbody.innerHTML = rows.map(r => r.html).join('');
+        const inicio = (paginaAtual - 1) * PAGE_SIZE;
+        tbody.innerHTML = rowsFiltradas.slice(inicio, inicio + PAGE_SIZE).map(r => r.html).join('');
+        renderPaginacao('pag-manut', rowsFiltradas.length, paginaAtual, PAGE_SIZE, 'irParaPagina');
+    }
+
+    function irParaPagina(n) {
+        paginaAtual = n;
+        renderRows();
     }
 
     async function carregar() {
-        const [resManut, resDisp, resUsr] = await Promise.all([
-            authFetch(`${API}/manutencoes/`).then(r => r.json()),
-            authFetch(`${API}/dispositivos/`).then(r => r.json()),
-            authFetch(`${API}/usuarios/`).then(r => r.json()),
+        paginaAtual = 1;
+        const [todasManutFetch, dispArr, usrArr] = await Promise.all([
+            fetchAll(`${API}/manutencoes/`),
+            fetchAll(`${API}/dispositivos/`),
+            fetchAll(`${API}/usuarios/`),
         ]);
-
-        todasManut    = Array.isArray(resManut) ? resManut : (resManut.results || []);
-        const dispArr = Array.isArray(resDisp)  ? resDisp  : (resDisp.results  || []);
-        const usrArr  = Array.isArray(resUsr)   ? resUsr   : (resUsr.results   || []);
+        todasManut = todasManutFetch;
 
         // Mapas para display
         dispArr.forEach(d => {

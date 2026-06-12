@@ -44,6 +44,7 @@
         </tbody>
     </table>
 </div>
+<div id="pag-tickets"></div>
 
 <!-- Modal: Novo Ticket -->
 <div class="modal fade" id="modal-novo" tabindex="-1">
@@ -154,11 +155,14 @@
 
 {% block scripts %}
 <script>
-    let todosTickets  = [];
+    let todosTickets   = [];
     let dispositivoMap = {};
-    let tecnicoMap    = {};
-    let filtroAtual   = '';
-    let termoBusca    = '';
+    let tecnicoMap     = {};
+    let filtroAtual    = '';
+    let termoBusca     = '';
+    let rowsFiltrados  = [];
+    let paginaAtual    = 1;
+    const PAGE_SIZE    = 50;
 
     const STATUS_INFO = {
         aberto:       { label: 'Aberto',       cls: 'badge-aberto' },
@@ -173,9 +177,9 @@
         return `<span class="status-badge ${cls}">${label}</span>`;
     }
 
-    function renderTabela(lista) {
+    function renderTabela() {
         const tbody = document.getElementById('tickets-body');
-        if (!lista.length) {
+        if (!rowsFiltrados.length) {
             tbody.innerHTML = `<tr><td colspan="7">
                 <div class="empty-state">
                     <i class="bi bi-ticket empty-state-icon"></i>
@@ -183,8 +187,11 @@
                     <p class="empty-state-sub">Tente mudar os filtros ou abra um novo ticket.</p>
                 </div>
             </td></tr>`;
+            document.getElementById('pag-tickets').innerHTML = '';
             return;
         }
+        const inicio = (paginaAtual - 1) * PAGE_SIZE;
+        const lista  = rowsFiltrados.slice(inicio, inicio + PAGE_SIZE);
         tbody.innerHTML = lista.map(t => {
             const dispNome   = t.dispositivo ? (dispositivoMap[t.dispositivo] || `#${t.dispositivo}`) : '—';
             const tecnicoNome = t.tecnico ? (tecnicoMap[t.tecnico] || `#${t.tecnico}`) : '—';
@@ -219,26 +226,33 @@
                 <td><div class="d-flex gap-1 justify-content-end">${acoes.join('')}</div></td>
             </tr>`;
         }).join('');
+        renderPaginacao('pag-tickets', rowsFiltrados.length, paginaAtual, PAGE_SIZE, 'irParaPagina');
+    }
+
+    function irParaPagina(n) {
+        paginaAtual = n;
+        renderTabela();
     }
 
     function aplicarBusca() {
         termoBusca = document.getElementById('search-tickets').value.toLowerCase();
+        paginaAtual = 1;
         aplicarFiltros();
     }
 
     function aplicarFiltros() {
-        let lista = todosTickets;
+        rowsFiltrados = todosTickets;
         if (filtroAtual) {
             const valores = filtroAtual.split(',');
-            lista = lista.filter(t => valores.includes(t.status));
+            rowsFiltrados = rowsFiltrados.filter(t => valores.includes(t.status));
         }
         if (termoBusca) {
-            lista = lista.filter(t =>
+            rowsFiltrados = rowsFiltrados.filter(t =>
                 t.titulo.toLowerCase().includes(termoBusca) ||
                 (t.descricao || '').toLowerCase().includes(termoBusca)
             );
         }
-        renderTabela(lista);
+        renderTabela();
     }
 
     function filtrar(status) {
@@ -246,20 +260,18 @@
         document.querySelectorAll('.filter-group .btn').forEach(b => b.classList.remove('active'));
         const ids = { '': 'f-todos', 'aberto': 'f-aberto', 'assumido': 'f-assumido', 'em_andamento': 'f-andamento', 'resolvido,encerrado': 'f-concluido' };
         document.getElementById(ids[status] || 'f-todos')?.classList.add('active');
+        paginaAtual = 1;
         aplicarFiltros();
     }
 
     async function carregar() {
-        const [resDisp, resMod, resTec, resTickets] = await Promise.all([
-            authFetch(`${API}/dispositivos/`).then(r => r.json()),
-            authFetch(`${API}/modelos/`).then(r => r.json()),
-            authFetch(`${API}/usuarios/`).then(r => r.json()),
-            authFetch(`${API}/tickets/`).then(r => r.json()),
+        paginaAtual = 1;
+        const [dispArr, modArr, tecArr, resTickets] = await Promise.all([
+            fetchAll(`${API}/dispositivos/`),
+            fetchAll(`${API}/modelos/`),
+            fetchAll(`${API}/usuarios/`),
+            fetchAll(`${API}/tickets/`),
         ]);
-
-        const dispArr = Array.isArray(resDisp) ? resDisp : (resDisp.results || []);
-        const modArr  = Array.isArray(resMod)  ? resMod  : (resMod.results  || []);
-        const tecArr  = Array.isArray(resTec)  ? resTec  : (resTec.results  || []);
 
         const modeloMap = Object.fromEntries(modArr.map(m => [m.id, m.nome]));
         dispArr.forEach(d => {
@@ -275,7 +287,7 @@
             dispArr.forEach(d => { sel.innerHTML += `<option value="${d.id}">${dispositivoMap[d.id]}</option>`; });
         });
 
-        todosTickets = Array.isArray(resTickets) ? resTickets : (resTickets.results || []);
+        todosTickets = resTickets;
         aplicarFiltros();
     }
 

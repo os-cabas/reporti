@@ -12,3 +12,4 @@ python-dotenv==1.2.2
 mysqlclient==2.2.8
 sqlparse==0.5.5
 tzdata==2026.2
+whitenoise==6.12.0
