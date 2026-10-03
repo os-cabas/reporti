@@ -346,6 +346,7 @@ body {
     border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
+    overflow-x: auto;   /* tabela mais larga que o cartão rola, em vez de cortar os botões de ação */
     border: 1px solid var(--border);
 }
 

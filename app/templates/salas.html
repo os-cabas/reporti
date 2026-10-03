@@ -184,10 +184,10 @@
             const blocoAndar = [s.bloco, s.andar].filter(Boolean).join(' / ') || '—';
             const html = `<tr>
                 <td class="text-muted fw-medium">#${s.id}</td>
-                <td class="fw-medium">${s.nome}</td>
-                <td class="text-muted">${blocoAndar}</td>
-                <td class="text-muted">${s.numero || '—'}</td>
-                <td>${entNome}</td>
+                <td class="fw-medium">${esc(s.nome)}</td>
+                <td class="text-muted">${esc(blocoAndar)}</td>
+                <td class="text-muted">${esc(s.numero || '—')}</td>
+                <td>${esc(entNome)}</td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
                         <button class="btn-action" onclick="abrirEdicao(${s.id})" title="Editar"><i class="bi bi-pencil"></i></button>
@@ -204,7 +204,7 @@
         ['f-entidade', 'e-entidade'].forEach(selId => {
             const sel = document.getElementById(selId);
             sel.innerHTML = '<option value="">Selecione uma entidade</option>';
-            entArr.forEach(e => { sel.innerHTML += `<option value="${e.id}">${e.nome}</option>`; });
+            entArr.forEach(e => { sel.innerHTML += `<option value="${e.id}">${esc(e.nome)}</option>`; });
         });
     }
 

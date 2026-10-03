@@ -2,6 +2,7 @@ from django.conf import settings
 from django.views.generic import TemplateView
 
 from app.models.dispositivo import Dispositivo
+from app.models.ticket import Ticket
 
 
 class LoginPageView(TemplateView):
@@ -77,6 +78,10 @@ class ReportarDispositivoPageView(TemplateView):
                 'situacao': d.get_situacao_display(),
                 'sala': str(d.sala) if d.sala else None,
                 'modelo': str(d.modelo) if d.modelo else None,
+                # A página é pública: mostra só a contagem, nunca o conteúdo dos chamados.
+                'chamados_abertos': Ticket.objects.filter(
+                    dispositivo=d, status__in=Ticket.STATUS_PENDENTES,
+                ).count(),
             }
         except Dispositivo.DoesNotExist:
             ctx['dispositivo'] = None

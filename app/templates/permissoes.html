@@ -168,7 +168,7 @@
             tbody.innerHTML = permArr.map(p => `
                 <tr>
                     <td class="text-muted fw-medium">#${p.id}</td>
-                    <td class="fw-medium">${p.nome}</td>
+                    <td class="fw-medium">${esc(p.nome)}</td>
                     <td>
                         <div class="d-flex gap-1 justify-content-end">
                             <button class="btn-action" onclick="abrirEdicaoPerm(${p.id})" title="Editar"><i class="bi bi-pencil"></i></button>
@@ -191,8 +191,8 @@
             upTbody.innerHTML = upArr.map(up => `
                 <tr>
                     <td class="text-muted fw-medium">#${up.id}</td>
-                    <td class="fw-medium">${userMap[up.usuario] || `#${up.usuario}`}</td>
-                    <td><span class="tag-badge"><i class="bi bi-shield-check" style="font-size:.7rem;"></i>${permMap[up.permissao] || `#${up.permissao}`}</span></td>
+                    <td class="fw-medium">${esc(userMap[up.usuario] || `#${up.usuario}`)}</td>
+                    <td><span class="tag-badge"><i class="bi bi-shield-check" style="font-size:.7rem;"></i>${esc(permMap[up.permissao] || `#${up.permissao}`)}</span></td>
                     <td class="text-muted">${up.data ? new Date(up.data).toLocaleDateString('pt-BR') : '—'}</td>
                     <td>
                         <div class="d-flex justify-content-end">
@@ -205,11 +205,11 @@
         // Preencher selects
         const selUser = document.getElementById('f-up-usuario');
         selUser.innerHTML = '<option value="">Selecione um usuário</option>';
-        userArr.forEach(u => { selUser.innerHTML += `<option value="${u.id}">${u.username}</option>`; });
+        userArr.forEach(u => { selUser.innerHTML += `<option value="${u.id}">${esc(u.username)}</option>`; });
 
         const selPerm = document.getElementById('f-up-permissao');
         selPerm.innerHTML = '<option value="">Selecione uma permissão</option>';
-        permArr.forEach(p => { selPerm.innerHTML += `<option value="${p.id}">${p.nome}</option>`; });
+        permArr.forEach(p => { selPerm.innerHTML += `<option value="${p.id}">${esc(p.nome)}</option>`; });
     }
 
     async function criarPermissao() {

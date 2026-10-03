@@ -162,6 +162,15 @@
         <div id="form-section" style="display:none;">
             <div class="section-title">Reportar problema</div>
 
+            {% if dispositivo.chamados_abertos %}
+            <div class="alert alert-warn">
+                <i class="bi bi-info-circle"></i>
+                Este equipamento já tem {{ dispositivo.chamados_abertos }}
+                chamado{{ dispositivo.chamados_abertos|pluralize }} em aberto.
+                Se for o mesmo problema, não precisa reportar de novo.
+            </div>
+            {% endif %}
+
             <div id="alerta" class="alert" style="display:none;"></div>
 
             <div class="mb">
@@ -170,7 +179,28 @@
             </div>
             <div class="mb">
                 <label for="descricao">Descrição</label>
-                <textarea id="descricao" placeholder="Descreva o problema com mais detalhes…"></textarea>
+                <textarea id="descricao" maxlength="5000" placeholder="Descreva o problema com mais detalhes…"></textarea>
+            </div>
+            <div class="mb" style="display:flex;gap:.6rem;">
+                <div style="flex:1;min-width:0;">
+                    <label for="tipo">Tipo de problema</label>
+                    <select id="tipo">
+                        <option value="hardware">Hardware</option>
+                        <option value="software">Software</option>
+                        <option value="rede">Rede</option>
+                        <option value="periferico">Periférico</option>
+                        <option value="outro" selected>Outro</option>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <label for="prioridade">Urgência</label>
+                    <select id="prioridade">
+                        <option value="baixa">Baixa</option>
+                        <option value="media" selected>Média</option>
+                        <option value="alta">Alta</option>
+                        <option value="critica">Crítica</option>
+                    </select>
+                </div>
             </div>
 
             <button class="btn-submit" id="btn-enviar" onclick="enviar()">
@@ -234,7 +264,12 @@
 
         const res = await authFetch('/api/tickets/', {
             method: 'POST',
-            body: JSON.stringify({ titulo, descricao, dispositivo: dispositivoId }),
+            body: JSON.stringify({
+                titulo, descricao,
+                dispositivo:   dispositivoId,
+                tipo_problema: document.getElementById('tipo').value,
+                prioridade:    document.getElementById('prioridade').value,
+            }),
         });
 
         if (res.ok) {

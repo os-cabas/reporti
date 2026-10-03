@@ -1,14 +1,21 @@
+import logging
+
 from django.db import transaction
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
+from app import notificacoes
+from app.exportacao import data_local, resposta_csv
 from app.models.historico_ticket import HistoricoTicket
 from app.models.ticket import Ticket
-from app.permissions import EhTecnico
-from app.serializers.historico_ticket import HistoricoTicketSerializer
+from app.permissions import EhAdminEntidade, EhTecnico
+from app.serializers.historico_ticket import ComentarioSerializer, HistoricoTicketSerializer
 from app.serializers.ticket import TicketSerializer
+from app.throttles import AberturaTicketThrottle, ComentarioTicketThrottle
+
+logger = logging.getLogger('app.tickets')
 
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -39,17 +46,29 @@ class TicketViewSet(viewsets.ModelViewSet):
                          'assumir', 'atualizar_status', 'resolver', 'encerrar'}
         if self.action in acoes_tecnico:
             return [EhTecnico()]
+        if self.action == 'exportar':
+            return [EhAdminEntidade()]
         return [permissions.IsAuthenticated()]
+
+    def get_throttles(self):
+        if self.action == 'create':
+            return [AberturaTicketThrottle()]
+        if self.action == 'comentar':
+            return [ComentarioTicketThrottle()]
+        return super().get_throttles()
 
     # ── RN004: bloqueia qualquer escrita em ticket encerrado ─────────────────
 
     def get_object(self):
         ticket = super().get_object()
-        acoes_escrita = {'assumir', 'atualizar_status', 'resolver', 'encerrar',
+        acoes_escrita = {'assumir', 'atualizar_status', 'resolver', 'encerrar', 'comentar',
                          'update', 'partial_update', 'destroy'}
         if self.action in acoes_escrita and ticket.status == 'encerrado':
             raise PermissionDenied('Ticket encerrado não pode ser editado.')
         return ticket
+
+    def _base_url(self):
+        return self.request.build_absolute_uri('/').rstrip('/')
 
     # ── Criação ──────────────────────────────────────────────────────────────
 
@@ -63,6 +82,20 @@ class TicketViewSet(viewsets.ModelViewSet):
             ticket=ticket, acao='aberto',
             descricao='Chamado aberto.', usuario=self.request.user,
         )
+        notificacoes.notificar_abertura(ticket, self._base_url())
+
+    # ── Edição: mudança de prioridade fica registrada no histórico ───────────
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        anterior = serializer.instance.get_prioridade_display()
+        ticket = serializer.save()
+        if ticket.get_prioridade_display() != anterior:
+            HistoricoTicket.objects.create(
+                ticket=ticket, acao='prioridade',
+                descricao=f'Prioridade alterada de "{anterior}" para "{ticket.get_prioridade_display()}".',
+                usuario=self.request.user,
+            )
 
     # ── Helper interno: muda status e registra histórico numa transação ──────
 
@@ -76,6 +109,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         HistoricoTicket.objects.create(
             ticket=ticket, acao=novo_status, descricao=descricao, usuario=usuario,
         )
+        notificacoes.notificar_status(ticket, descricao, usuario, self._base_url())
 
     # ── RF012: ações de atendimento ──────────────────────────────────────────
 
@@ -91,7 +125,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def atualizar_status(self, request, pk=None):  # noqa: ARG002
         ticket = self.get_object()
-        novo_status = request.data.get('status', '').strip()
+        novo_status = str(request.data.get('status', '')).strip()
         status_validos = [s[0] for s in Ticket.STATUS if s[0] != 'encerrado']
         if novo_status not in status_validos:
             return Response(
@@ -107,21 +141,38 @@ class TicketViewSet(viewsets.ModelViewSet):
         )
         return Response(TicketSerializer(ticket).data)
 
+    def _observacao(self, padrao):
+        texto = str(self.request.data.get('descricao') or '').strip()
+        return texto[:2000] or padrao
+
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def resolver(self, request, pk=None):  # noqa: ARG002
         ticket = self.get_object()
-        descricao = request.data.get('descricao', 'Chamado marcado como resolvido.')
-        self._mudar_status(ticket, 'resolvido', descricao, request.user)
+        self._mudar_status(ticket, 'resolvido', self._observacao('Chamado marcado como resolvido.'), request.user)
         return Response(TicketSerializer(ticket).data)
 
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def encerrar(self, request, pk=None):  # noqa: ARG002
         ticket = self.get_object()
-        descricao = request.data.get('descricao', 'Chamado encerrado.')
-        self._mudar_status(ticket, 'encerrado', descricao, request.user)
+        self._mudar_status(ticket, 'encerrado', self._observacao('Chamado encerrado.'), request.user)
         return Response(TicketSerializer(ticket).data)
+
+    # ── Comentários: solicitante e técnico conversam dentro do chamado ───────
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def comentar(self, request, pk=None):  # noqa: ARG002
+        ticket = self.get_object()
+        serializer = ComentarioSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        texto = serializer.validated_data['texto']
+        registro = HistoricoTicket.objects.create(
+            ticket=ticket, acao='comentario', descricao=texto, usuario=request.user,
+        )
+        notificacoes.notificar_comentario(ticket, texto, request.user, self._base_url())
+        return Response(HistoricoTicketSerializer(registro).data, status=status.HTTP_201_CREATED)
 
     # ── Histórico do ticket ──────────────────────────────────────────────────
 
@@ -130,3 +181,30 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = self.get_object()
         qs = ticket.historico.select_related('usuario').all()
         return Response(HistoricoTicketSerializer(qs, many=True).data)
+
+    # ── Relatório em CSV (Administrador da Entidade ou Geral) ────────────────
+
+    @action(detail=False, methods=['get'])
+    def exportar(self, request):
+        tickets = self.get_queryset().select_related('dispositivo__sala')
+        linhas = [
+            (
+                t.pk, t.titulo, t.descricao,
+                t.get_status_display(), t.get_prioridade_display(), t.get_tipo_problema_display(),
+                t.usuario.email if t.usuario else '',
+                (t.tecnico.get_full_name() or t.tecnico.email) if t.tecnico else '',
+                t.dispositivo.codigo_qr if t.dispositivo else '',
+                f'{t.dispositivo.tipo} {t.dispositivo.marca}'.strip() if t.dispositivo else '',
+                t.dispositivo.sala.nome if t.dispositivo and t.dispositivo.sala else '',
+                data_local(t.criado_em), data_local(t.atualizado_em),
+            )
+            for t in tickets
+        ]
+        logger.info('Exportação de %d tickets pelo usuário #%s', len(linhas), request.user.pk)
+        return resposta_csv(
+            'tickets',
+            ['ID', 'Título', 'Descrição', 'Status', 'Prioridade', 'Tipo de problema',
+             'Solicitante', 'Técnico', 'Código do equipamento', 'Equipamento', 'Sala',
+             'Aberto em', 'Atualizado em'],
+            linhas,
+        )

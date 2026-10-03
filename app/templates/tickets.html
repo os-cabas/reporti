@@ -5,6 +5,13 @@
 {% block page_title %}Tickets{% endblock %}
 
 {% block content %}
+<style>
+    /* Com a coluna de prioridade a tabela ficou mais larga: células mais compactas. */
+    #tickets-table th, #tickets-table td { padding-left: .75rem; padding-right: .75rem; }
+    /* Os filtros novos ocupam a barra: busca mais estreita e botões alinhados à direita se quebrar a linha. */
+    #search-tickets { width: 160px; }
+    .toolbar-right { margin-left: auto; }
+</style>
 <div class="toolbar">
     <div class="toolbar-left">
         <div class="btn-group filter-group" role="group">
@@ -14,12 +21,30 @@
             <button class="btn btn-outline-secondary" onclick="filtrar('em_andamento')"       id="f-andamento">Em andamento</button>
             <button class="btn btn-outline-secondary" onclick="filtrar('resolvido,encerrado')" id="f-concluido">Concluído</button>
         </div>
+        <select id="filtro-prioridade" class="form-select form-select-sm" style="width:auto;" onchange="aplicarSelects()" aria-label="Filtrar por prioridade">
+            <option value="">Prioridade: todas</option>
+            <option value="critica">Crítica</option>
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
+        </select>
+        <select id="filtro-tipo" class="form-select form-select-sm" style="width:auto;" onchange="aplicarSelects()" aria-label="Filtrar por tipo de problema">
+            <option value="">Tipo: todos</option>
+            <option value="hardware">Hardware</option>
+            <option value="software">Software</option>
+            <option value="rede">Rede</option>
+            <option value="periferico">Periférico</option>
+            <option value="outro">Outro</option>
+        </select>
         <div class="search-wrap">
             <i class="bi bi-search"></i>
             <input type="text" class="search-input" id="search-tickets" placeholder="Buscar ticket…" oninput="aplicarBusca()">
         </div>
     </div>
     <div class="toolbar-right">
+        <button class="btn btn-outline-secondary btn-sm" data-min-perfil="admin_entidade" onclick="baixarArquivo(`${API}/tickets/exportar/`, 'tickets.csv')">
+            <i class="bi bi-download me-1"></i>Exportar CSV
+        </button>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
             <i class="bi bi-plus-lg me-1"></i>Novo Ticket
         </button>
@@ -27,11 +52,12 @@
 </div>
 
 <div class="table-card">
-    <table class="table">
+    <table class="table" id="tickets-table">
         <thead>
             <tr>
                 <th>#</th>
                 <th>Título</th>
+                <th>Prioridade</th>
                 <th>Status</th>
                 <th>Técnico</th>
                 <th>Dispositivo</th>
@@ -40,7 +66,7 @@
             </tr>
         </thead>
         <tbody id="tickets-body">
-            <tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>
+            <tr><td colspan="8" class="text-center text-muted py-4">Carregando...</td></tr>
         </tbody>
     </table>
 </div>
@@ -57,11 +83,32 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label">Título <span class="text-danger">*</span></label>
-                    <input type="text" id="f-titulo" class="form-control form-control-sm" placeholder="Descreva brevemente o problema">
+                    <input type="text" id="f-titulo" class="form-control form-control-sm" maxlength="200" placeholder="Descreva brevemente o problema">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Descrição</label>
-                    <textarea id="f-descricao" class="form-control form-control-sm" rows="3" placeholder="Detalhes adicionais…"></textarea>
+                    <textarea id="f-descricao" class="form-control form-control-sm" rows="3" maxlength="5000" placeholder="Detalhes adicionais…"></textarea>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Prioridade</label>
+                        <select id="f-prioridade" class="form-select form-select-sm">
+                            <option value="baixa">Baixa</option>
+                            <option value="media" selected>Média</option>
+                            <option value="alta">Alta</option>
+                            <option value="critica">Crítica</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Tipo de problema</label>
+                        <select id="f-tipo" class="form-select form-select-sm">
+                            <option value="hardware">Hardware</option>
+                            <option value="software">Software</option>
+                            <option value="rede">Rede</option>
+                            <option value="periferico">Periférico</option>
+                            <option value="outro" selected>Outro</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Dispositivo</label>
@@ -90,11 +137,32 @@
                 <input type="hidden" id="e-id">
                 <div class="mb-3">
                     <label class="form-label">Título <span class="text-danger">*</span></label>
-                    <input type="text" id="e-titulo" class="form-control form-control-sm">
+                    <input type="text" id="e-titulo" class="form-control form-control-sm" maxlength="200">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Descrição</label>
-                    <textarea id="e-descricao" class="form-control form-control-sm" rows="3"></textarea>
+                    <textarea id="e-descricao" class="form-control form-control-sm" rows="3" maxlength="5000"></textarea>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Prioridade</label>
+                        <select id="e-prioridade" class="form-select form-select-sm">
+                            <option value="baixa">Baixa</option>
+                            <option value="media">Média</option>
+                            <option value="alta">Alta</option>
+                            <option value="critica">Crítica</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Tipo de problema</label>
+                        <select id="e-tipo" class="form-select form-select-sm">
+                            <option value="hardware">Hardware</option>
+                            <option value="software">Software</option>
+                            <option value="rede">Rede</option>
+                            <option value="periferico">Periférico</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Dispositivo</label>
@@ -124,7 +192,7 @@
                 <input type="hidden" id="acao-tipo">
                 <div class="mb-2">
                     <label class="form-label">Observação</label>
-                    <textarea id="acao-descricao" class="form-control form-control-sm" rows="3" placeholder="Descreva o que foi feito…"></textarea>
+                    <textarea id="acao-descricao" class="form-control form-control-sm" rows="3" maxlength="2000" placeholder="Descreva o que foi feito…"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -135,7 +203,7 @@
     </div>
 </div>
 
-<!-- Modal: Histórico -->
+<!-- Modal: Histórico e comentários -->
 <div class="modal fade" id="modal-historico" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -146,6 +214,15 @@
             <div class="modal-body p-0">
                 <div id="historico-lista" style="max-height:420px;overflow-y:auto;padding:1rem;">
                     <p class="text-muted text-center py-3">Carregando…</p>
+                </div>
+            </div>
+            <div class="modal-footer d-block" id="comentario-area">
+                <label class="form-label" for="comentario-texto">Comentar</label>
+                <div class="d-flex gap-2 align-items-end">
+                    <textarea id="comentario-texto" class="form-control form-control-sm" rows="2" maxlength="2000" placeholder="Escreva uma mensagem para quem abriu o chamado…"></textarea>
+                    <button class="btn btn-sm btn-primary flex-shrink-0" id="comentario-enviar" onclick="enviarComentario()">
+                        <i class="bi bi-send me-1"></i>Enviar
+                    </button>
                 </div>
             </div>
         </div>
@@ -159,9 +236,12 @@
     let dispositivoMap = {};
     let tecnicoMap     = {};
     let filtroAtual    = '';
+    let filtroPrioridade = '';
+    let filtroTipo     = '';
     let termoBusca     = '';
     let rowsFiltrados  = [];
     let paginaAtual    = 1;
+    let historicoTicketId = null;
     const PAGE_SIZE    = 50;
 
     const STATUS_INFO = {
@@ -172,15 +252,45 @@
         encerrado:    { label: 'Encerrado',     cls: 'badge-encerrado' },
     };
 
+    const PRIORIDADE_INFO = {
+        baixa:   { label: 'Baixa',   cor: '#64748b', bg: '#f1f5f9', peso: 0 },
+        media:   { label: 'Média',   cor: '#2563eb', bg: '#eff6ff', peso: 1 },
+        alta:    { label: 'Alta',    cor: '#d97706', bg: '#fffbeb', peso: 2 },
+        critica: { label: 'Crítica', cor: '#dc2626', bg: '#fef2f2', peso: 3 },
+    };
+
+    const TIPO_LABEL = {
+        hardware: 'Hardware', software: 'Software', rede: 'Rede', periferico: 'Periférico', outro: 'Outro',
+    };
+
+    const PENDENTES = ['aberto', 'assumido', 'em_andamento'];
+
     function statusBadge(s) {
-        const { label, cls } = STATUS_INFO[s] || { label: s, cls: '' };
+        const { label, cls } = STATUS_INFO[s] || { label: esc(s), cls: '' };
         return `<span class="status-badge ${cls}">${label}</span>`;
+    }
+
+    function prioridadeBadge(p) {
+        const { label, cor, bg } = PRIORIDADE_INFO[p] || { label: esc(p), cor: '#64748b', bg: '#f1f5f9' };
+        return `<span class="status-badge" style="background:${bg};color:${cor};border-color:transparent;">${label}</span>`;
+    }
+
+    // Fila de atendimento: pendentes primeiro, do mais urgente para o menos,
+    // e dentro da mesma prioridade o mais antigo na frente. Concluídos vão para o fim.
+    function ordenarFila(tickets) {
+        const peso = t => PRIORIDADE_INFO[t.prioridade]?.peso ?? 0;
+        return [...tickets].sort((a, b) => {
+            const pa = PENDENTES.includes(a.status), pb = PENDENTES.includes(b.status);
+            if (pa !== pb) return pa ? -1 : 1;
+            if (!pa) return new Date(b.criado_em) - new Date(a.criado_em);
+            return (peso(b) - peso(a)) || (new Date(a.criado_em) - new Date(b.criado_em));
+        });
     }
 
     function renderTabela() {
         const tbody = document.getElementById('tickets-body');
         if (!rowsFiltrados.length) {
-            tbody.innerHTML = `<tr><td colspan="7">
+            tbody.innerHTML = `<tr><td colspan="8">
                 <div class="empty-state">
                     <i class="bi bi-ticket empty-state-icon"></i>
                     <p class="empty-state-title">Nenhum ticket encontrado</p>
@@ -195,6 +305,7 @@
         tbody.innerHTML = lista.map(t => {
             const dispNome   = t.dispositivo ? (dispositivoMap[t.dispositivo] || `#${t.dispositivo}`) : '—';
             const tecnicoNome = t.tecnico ? (tecnicoMap[t.tecnico] || `#${t.tecnico}`) : '—';
+            const descricao  = t.descricao || '';
             const acoes = [];
 
             if (t.status === 'aberto')
@@ -206,7 +317,7 @@
             if (t.status === 'resolvido')
                 acoes.push(`<button class="btn-action" onclick="abrirAcao(${t.id},'encerrar')" title="Encerrar" style="background:#f5f3ff;color:#7c3aed;"><i class="bi bi-lock"></i></button>`);
 
-            acoes.push(`<button class="btn-action" onclick="verHistorico(${t.id})" title="Histórico"><i class="bi bi-clock-history"></i></button>`);
+            acoes.push(`<button class="btn-action" onclick="verHistorico(${t.id})" title="Histórico e comentários"><i class="bi bi-chat-left-text"></i></button>`);
 
             if (t.status !== 'encerrado') {
                 acoes.push(`<button class="btn-action" onclick="abrirEdicao(${t.id})" title="Editar"><i class="bi bi-pencil"></i></button>`);
@@ -215,13 +326,15 @@
 
             return `<tr>
                 <td class="text-muted fw-medium">#${t.id}</td>
-                <td>
-                    <span class="fw-medium">${t.titulo}</span>
-                    ${t.descricao ? `<br><small class="text-muted" style="font-size:.75rem;">${t.descricao.length > 60 ? t.descricao.slice(0,60)+'…' : t.descricao}</small>` : ''}
+                <td style="min-width:220px;overflow-wrap:anywhere;">
+                    <span class="fw-medium">${esc(t.titulo)}</span>
+                    <span class="tag-badge" style="font-size:.7rem;">${esc(TIPO_LABEL[t.tipo_problema] || t.tipo_problema)}</span>
+                    ${descricao ? `<br><small class="text-muted" style="font-size:.75rem;">${esc(descricao.length > 60 ? descricao.slice(0,60)+'…' : descricao)}</small>` : ''}
                 </td>
+                <td>${prioridadeBadge(t.prioridade)}</td>
                 <td>${statusBadge(t.status)}</td>
-                <td class="text-muted">${tecnicoNome !== '—' ? `<span class="tag-badge"><i class="bi bi-person" style="font-size:.7rem;"></i>${tecnicoNome}</span>` : '<span class="text-muted">—</span>'}</td>
-                <td>${dispNome !== '—' ? `<span class="tag-badge"><i class="bi bi-pc-display" style="font-size:.7rem;"></i>${dispNome}</span>` : '<span class="text-muted">—</span>'}</td>
+                <td class="text-muted">${tecnicoNome !== '—' ? `<span class="tag-badge"><i class="bi bi-person" style="font-size:.7rem;"></i>${esc(tecnicoNome)}</span>` : '<span class="text-muted">—</span>'}</td>
+                <td>${dispNome !== '—' ? `<span class="tag-badge"><i class="bi bi-pc-display" style="font-size:.7rem;"></i>${esc(dispNome)}</span>` : '<span class="text-muted">—</span>'}</td>
                 <td class="text-muted">${new Date(t.criado_em).toLocaleDateString('pt-BR')}</td>
                 <td><div class="d-flex gap-1 justify-content-end">${acoes.join('')}</div></td>
             </tr>`;
@@ -240,12 +353,21 @@
         aplicarFiltros();
     }
 
+    function aplicarSelects() {
+        filtroPrioridade = document.getElementById('filtro-prioridade').value;
+        filtroTipo       = document.getElementById('filtro-tipo').value;
+        paginaAtual = 1;
+        aplicarFiltros();
+    }
+
     function aplicarFiltros() {
         rowsFiltrados = todosTickets;
         if (filtroAtual) {
             const valores = filtroAtual.split(',');
             rowsFiltrados = rowsFiltrados.filter(t => valores.includes(t.status));
         }
+        if (filtroPrioridade) rowsFiltrados = rowsFiltrados.filter(t => t.prioridade === filtroPrioridade);
+        if (filtroTipo)       rowsFiltrados = rowsFiltrados.filter(t => t.tipo_problema === filtroTipo);
         if (termoBusca) {
             rowsFiltrados = rowsFiltrados.filter(t =>
                 t.titulo.toLowerCase().includes(termoBusca) ||
@@ -283,11 +405,11 @@
 
         ['f-dispositivo', 'e-dispositivo'].forEach(selId => {
             const sel = document.getElementById(selId);
-            sel.innerHTML = '<option value="">— Nenhum —</option>';
-            dispArr.forEach(d => { sel.innerHTML += `<option value="${d.id}">${dispositivoMap[d.id]}</option>`; });
+            sel.innerHTML = '<option value="">— Nenhum —</option>'
+                + dispArr.map(d => `<option value="${d.id}">${esc(dispositivoMap[d.id])}</option>`).join('');
         });
 
-        todosTickets = resTickets;
+        todosTickets = ordenarFila(resTickets);
         aplicarFiltros();
     }
 
@@ -298,14 +420,18 @@
             method: 'POST',
             body: JSON.stringify({
                 titulo,
-                descricao:   document.getElementById('f-descricao').value,
-                dispositivo: document.getElementById('f-dispositivo').value || null,
+                descricao:     document.getElementById('f-descricao').value,
+                prioridade:    document.getElementById('f-prioridade').value,
+                tipo_problema: document.getElementById('f-tipo').value,
+                dispositivo:   document.getElementById('f-dispositivo').value || null,
             }),
         });
         if (res.ok) {
             bootstrap.Modal.getInstance(document.getElementById('modal-novo')).hide();
             ['f-titulo','f-descricao'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('f-dispositivo').value = '';
+            document.getElementById('f-prioridade').value  = 'media';
+            document.getElementById('f-tipo').value        = 'outro';
             await carregar();
             toast('Ticket criado!', 'success');
         } else {
@@ -320,6 +446,8 @@
         document.getElementById('e-id').value          = t.id;
         document.getElementById('e-titulo').value      = t.titulo;
         document.getElementById('e-descricao').value   = t.descricao || '';
+        document.getElementById('e-prioridade').value  = t.prioridade || 'media';
+        document.getElementById('e-tipo').value        = t.tipo_problema || 'outro';
         document.getElementById('e-dispositivo').value = t.dispositivo || '';
         new bootstrap.Modal(document.getElementById('modal-editar')).show();
     }
@@ -332,8 +460,10 @@
             method: 'PATCH',
             body: JSON.stringify({
                 titulo,
-                descricao:   document.getElementById('e-descricao').value,
-                dispositivo: document.getElementById('e-dispositivo').value || null,
+                descricao:     document.getElementById('e-descricao').value,
+                prioridade:    document.getElementById('e-prioridade').value,
+                tipo_problema: document.getElementById('e-tipo').value,
+                dispositivo:   document.getElementById('e-dispositivo').value || null,
             }),
         });
         if (res.ok) {
@@ -341,7 +471,8 @@
             await carregar();
             toast('Ticket atualizado.', 'success');
         } else {
-            toast('Erro ao salvar.', 'error');
+            const err = await res.json().catch(() => ({}));
+            toast(Object.values(err).flat()[0] || 'Erro ao salvar.', 'error');
         }
     }
 
@@ -396,11 +527,19 @@
         }
     }
 
-    async function verHistorico(id) {
+    function verHistorico(id) {
+        historicoTicketId = id;
+        const t = todosTickets.find(x => x.id === id);
+        // RN004: ticket encerrado não recebe comentários
+        document.getElementById('comentario-area').style.display = t && t.status === 'encerrado' ? 'none' : '';
+        document.getElementById('comentario-texto').value = '';
         document.getElementById('historico-lista').innerHTML = '<p class="text-muted text-center py-3">Carregando…</p>';
         new bootstrap.Modal(document.getElementById('modal-historico')).show();
+        carregarHistorico();
+    }
 
-        const res  = await authFetch(`${API}/tickets/${id}/historico/`);
+    async function carregarHistorico() {
+        const res  = await authFetch(`${API}/tickets/${historicoTicketId}/historico/`);
         const data = await res.json();
         const lista = Array.isArray(data) ? data : (data.results || []);
 
@@ -412,20 +551,45 @@
         const acaoLabel = {
             aberto: 'Aberto', assumido: 'Assumido', em_andamento: 'Em andamento',
             resolvido: 'Resolvido', encerrado: 'Encerrado',
+            comentario: 'Comentário', prioridade: 'Prioridade alterada',
         };
-        document.getElementById('historico-lista').innerHTML = lista.map(h => `
+        document.getElementById('historico-lista').innerHTML = lista.map(h => {
+            const comentario = h.acao === 'comentario';
+            return `
             <div class="d-flex gap-3 mb-3 pb-3 border-bottom">
-                <div class="stat-icon flex-shrink-0" style="width:32px;height:32px;font-size:.875rem;background:#f1f5f9;color:#64748b;">
-                    <i class="bi bi-clock"></i>
+                <div class="stat-icon flex-shrink-0" style="width:32px;height:32px;font-size:.875rem;background:${comentario ? '#eff6ff' : '#f1f5f9'};color:${comentario ? '#2563eb' : '#64748b'};">
+                    <i class="bi ${comentario ? 'bi-chat-left-text' : 'bi-clock'}"></i>
                 </div>
                 <div class="flex-grow-1">
                     <div class="d-flex justify-content-between align-items-start">
-                        <span class="fw-semibold" style="font-size:.875rem;">${acaoLabel[h.acao] || h.acao}</span>
+                        <span class="fw-semibold" style="font-size:.875rem;">${esc(acaoLabel[h.acao] || h.acao)}${h.usuario_nome ? ` <span class="text-muted fw-normal">· ${esc(h.usuario_nome)}</span>` : ''}</span>
                         <span class="text-muted" style="font-size:.75rem;">${new Date(h.criado_em).toLocaleString('pt-BR')}</span>
                     </div>
-                    ${h.descricao ? `<p class="text-muted mb-0 mt-1" style="font-size:.8125rem;">${h.descricao}</p>` : ''}
+                    ${h.descricao ? `<p class="text-muted mb-0 mt-1" style="font-size:.8125rem;white-space:pre-wrap;">${esc(h.descricao)}</p>` : ''}
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
+    }
+
+    async function enviarComentario() {
+        const campo = document.getElementById('comentario-texto');
+        const texto = campo.value.trim();
+        if (!texto) { toast('Escreva o comentário.', 'warn'); return; }
+        const btn = document.getElementById('comentario-enviar');
+        btn.disabled = true;
+        const res = await authFetch(`${API}/tickets/${historicoTicketId}/comentar/`, {
+            method: 'POST',
+            body: JSON.stringify({ texto }),
+        });
+        btn.disabled = false;
+        if (res.ok) {
+            campo.value = '';
+            await carregarHistorico();
+            toast('Comentário enviado.', 'success');
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast(err.detail || Object.values(err).flat()[0] || 'Não foi possível comentar.', 'error');
+        }
     }
 
     async function excluir(id) {

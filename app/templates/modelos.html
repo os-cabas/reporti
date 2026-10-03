@@ -153,9 +153,9 @@
             const descTrunc = m.descricao && m.descricao.length > 50 ? m.descricao.slice(0,50) + '…' : (m.descricao || '—');
             const html = `<tr>
                 <td class="text-muted fw-medium">#${m.id}</td>
-                <td class="fw-medium">${m.nome}</td>
-                <td>${catNome ? `<span class="tag-badge">${catNome}</span>` : '<span class="text-muted">—</span>'}</td>
-                <td class="text-muted" style="font-size:.8125rem;">${descTrunc}</td>
+                <td class="fw-medium">${esc(m.nome)}</td>
+                <td>${catNome ? `<span class="tag-badge">${esc(catNome)}</span>` : '<span class="text-muted">—</span>'}</td>
+                <td class="text-muted" style="font-size:.8125rem;">${esc(descTrunc)}</td>
                 <td><span class="count-badge">${count} dispositivo${count !== 1 ? 's' : ''}</span></td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
@@ -172,7 +172,7 @@
         ['f-categoria', 'e-categoria'].forEach(selId => {
             const sel = document.getElementById(selId);
             sel.innerHTML = '<option value="">— Sem categoria —</option>';
-            catArr.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`; });
+            catArr.forEach(c => { sel.innerHTML += `<option value="${c.id}">${esc(c.nome)}</option>`; });
         });
     }
 

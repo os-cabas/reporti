@@ -147,6 +147,29 @@
         return fetch(url, { ...opts, headers });
     }
 
+    // Escapa texto vindo da API antes de interpolar em innerHTML (previne XSS).
+    const ESC_MAPA = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' };
+    function esc(valor) {
+        return String(valor ?? '').replace(/[&<>"'`]/g, c => ESC_MAPA[c]);
+    }
+
+    // Baixa um arquivo de um endpoint autenticado (o JWT vai no header, então um <a href> não serve).
+    async function baixarArquivo(url, nomePadrao) {
+        const res = await authFetch(url);
+        if (!res.ok) {
+            toast(res.status === 403 ? 'Você não tem permissão para exportar.' : 'Não foi possível exportar.', 'error');
+            return;
+        }
+        const nome = (res.headers.get('Content-Disposition') || '').match(/filename="?([^";]+)"?/)?.[1] || nomePadrao;
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(await res.blob());
+        link.download = nome;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    }
+
     function toast(msg, type = 'default', duration = 3500) {
         const stack = document.getElementById('toast-stack');
         const icons = {
@@ -156,8 +179,9 @@
             warn:    'bi-exclamation-triangle-fill',
         };
         const el = document.createElement('div');
-        el.className = `toast-item toast-${type}`;
-        el.innerHTML = `<i class="bi ${icons[type] || icons.default}"></i><span>${msg}</span>`;
+        el.className = `toast-item toast-${icons[type] ? type : 'default'}`;
+        el.innerHTML = `<i class="bi ${icons[type] || icons.default}"></i><span></span>`;
+        el.querySelector('span').textContent = msg;   // mensagens da API nunca viram HTML
         stack.appendChild(el);
         setTimeout(() => {
             el.style.animation = 'toast-slide-out .25s ease forwards';

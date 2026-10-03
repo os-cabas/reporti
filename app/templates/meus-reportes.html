@@ -185,6 +185,30 @@
         .device-name { font-size: .9375rem; font-weight: 600; color: #1E293B; margin: 0 0 .25rem; }
         .device-detail { font-size: .8125rem; color: #64748B; margin: 0; }
 
+        /* ── Aviso de chamado já aberto ───────── */
+        .alert-aviso {
+            background: #FFFBEB; border: 1px solid #FDE68A;
+            border-radius: 10px; color: #92400E;
+            padding: .625rem .875rem; font-size: .8125rem;
+            margin-top: .625rem; display: none; line-height: 1.45;
+        }
+        .field-row { display: flex; gap: .625rem; margin-bottom: .875rem; }
+        .field-row > div { flex: 1; min-width: 0; }
+
+        /* ── Detalhe do reporte (histórico e comentários) ── */
+        .ticket-card { cursor: pointer; }
+        .detalhe-titulo { font-size: 1.0625rem; font-weight: 700; color: #1E293B; margin: 0 0 .375rem; overflow-wrap: anywhere; }
+        .detalhe-meta { display: flex; flex-wrap: wrap; gap: .375rem; margin-bottom: .75rem; }
+        .detalhe-desc { font-size: .875rem; color: #475569; margin: 0 0 1rem; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+        .hist-titulo { font-size: .8125rem; font-weight: 700; color: #475569; margin: 0 0 .5rem; }
+        .hist-item { border-left: 3px solid #E2E8F0; padding: .125rem 0 .125rem .75rem; margin-bottom: .75rem; }
+        .hist-item.comentario { border-left-color: #93C5FD; }
+        .hist-item.meu { border-left-color: #2563EB; }
+        .hist-cab { display: flex; justify-content: space-between; gap: .5rem; font-size: .78rem; color: #94A3B8; }
+        .hist-cab strong { color: #334155; font-weight: 600; }
+        .hist-texto { font-size: .875rem; color: #475569; margin: .125rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+        .hist-vazio { font-size: .875rem; color: #94A3B8; text-align: center; padding: 1rem 0; }
+
         /* ── Errors ───────────────────────────── */
         .alert-erro {
             background: #FEF2F2; border: 1px solid #FECACA;
@@ -319,13 +343,35 @@
 
     <!-- Passo 2: detalhes do chamado -->
     <div id="passo-ticket" style="display:none;">
+        <div class="alert-aviso" id="ja-reportado" style="margin:0 0 .875rem;"></div>
         <div style="margin-bottom:.875rem;">
             <label class="field-label" for="ticket-titulo">Título do problema <span style="color:#DC2626;">*</span></label>
             <input type="text" id="ticket-titulo" class="input-field" placeholder="Descreva brevemente o problema" maxlength="200">
         </div>
         <div style="margin-bottom:.875rem;">
             <label class="field-label" for="ticket-descricao">Descrição</label>
-            <textarea id="ticket-descricao" class="input-field" placeholder="Detalhe o que está acontecendo…"></textarea>
+            <textarea id="ticket-descricao" class="input-field" maxlength="5000" placeholder="Detalhe o que está acontecendo…"></textarea>
+        </div>
+        <div class="field-row">
+            <div>
+                <label class="field-label" for="ticket-tipo">Tipo de problema</label>
+                <select id="ticket-tipo" class="input-field">
+                    <option value="hardware">Hardware</option>
+                    <option value="software">Software</option>
+                    <option value="rede">Rede</option>
+                    <option value="periferico">Periférico</option>
+                    <option value="outro" selected>Outro</option>
+                </select>
+            </div>
+            <div>
+                <label class="field-label" for="ticket-prioridade">Urgência</label>
+                <select id="ticket-prioridade" class="input-field">
+                    <option value="baixa">Baixa</option>
+                    <option value="media" selected>Média</option>
+                    <option value="alta">Alta</option>
+                    <option value="critica">Crítica</option>
+                </select>
+            </div>
         </div>
         <div class="alert-erro" id="ticket-erro"></div>
         <button class="btn-primary" id="btn-enviar" onclick="enviarReporte()">
@@ -335,6 +381,27 @@
             <i class="bi bi-arrow-left me-1"></i>Trocar equipamento
         </button>
     </div>
+</div>
+
+<!-- ── Bottom sheet: Detalhe do reporte ───────────────────────────────────── -->
+<div class="sheet" id="sheet-detalhe">
+    <div class="sheet-handle"></div>
+    <p class="detalhe-titulo" id="detalhe-titulo"></p>
+    <div class="detalhe-meta" id="detalhe-meta"></div>
+    <p class="detalhe-desc" id="detalhe-desc"></p>
+
+    <p class="hist-titulo">Histórico e comentários</p>
+    <div id="detalhe-historico"><p class="hist-vazio">Carregando…</p></div>
+
+    <div id="detalhe-comentar">
+        <label class="field-label" for="detalhe-texto">Enviar mensagem ao técnico</label>
+        <textarea id="detalhe-texto" class="input-field" maxlength="2000" placeholder="Ex.: o problema voltou a acontecer hoje…"></textarea>
+        <div class="alert-erro" id="detalhe-erro"></div>
+        <button class="btn-primary" id="btn-comentar" onclick="enviarComentario()">
+            <i class="bi bi-send"></i>Enviar comentário
+        </button>
+    </div>
+    <button class="btn-link-sm" onclick="fecharSheet()" style="display:block;text-align:center;width:100%;margin-top:.5rem;">Fechar</button>
 </div>
 
 <!-- ── Scanner overlay ─────────────────────────────────────────────────────── -->
@@ -364,6 +431,12 @@
 
     function logout() { localStorage.clear(); window.location.href = '/acesso/'; }
 
+    // Escapa texto vindo da API antes de interpolar em innerHTML (previne XSS).
+    const ESC_MAPA = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' };
+    function esc(valor) {
+        return String(valor ?? '').replace(/[&<>"'`]/g, c => ESC_MAPA[c]);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         if (!getToken()) { window.location.href = '/acesso/'; return; }
         const u = getUsuario();
@@ -382,8 +455,23 @@
     };
 
     function statusPill(s) {
-        const { label, cor, bg } = STATUS_INFO[s] || { label: s, cor: '#64748B', bg: '#F1F5F9' };
+        const { label, cor, bg } = STATUS_INFO[s] || { label: esc(s), cor: '#64748B', bg: '#F1F5F9' };
         return `<span class="status-pill" style="background:${bg};color:${cor};">${label}</span>`;
+    }
+
+    const PRIORIDADE_INFO = {
+        baixa:   { label: 'Baixa',   cor: '#64748B', bg: '#F1F5F9' },
+        media:   { label: 'Média',   cor: '#2563EB', bg: '#EFF6FF' },
+        alta:    { label: 'Alta',    cor: '#D97706', bg: '#FFFBEB' },
+        critica: { label: 'Crítica', cor: '#DC2626', bg: '#FEF2F2' },
+    };
+    const TIPO_LABEL = {
+        hardware: 'Hardware', software: 'Software', rede: 'Rede', periferico: 'Periférico', outro: 'Outro',
+    };
+
+    function prioridadePill(p) {
+        const { label, cor, bg } = PRIORIDADE_INFO[p] || { label: esc(p), cor: '#64748B', bg: '#F1F5F9' };
+        return `<span class="status-pill" style="background:${bg};color:${cor};"><i class="bi bi-flag-fill" style="font-size:.6rem;margin-right:.25rem;"></i>${label}</span>`;
     }
 
     function fmtData(iso) {
@@ -442,15 +530,16 @@
             const tecnico = t.tecnico_nome || t.tecnico_detail?.nome || null;
             const desc    = (t.descricao || '').trim();
 
-            return `<div class="ticket-card">
+            return `<div class="ticket-card" role="button" tabindex="0" onclick="abrirDetalhe(${Number(t.id)})" onkeydown="if(event.key==='Enter')abrirDetalhe(${Number(t.id)})">
                 <div class="ticket-status-bar" style="background:${info.barra || '#CBD5E1'};"></div>
                 <div class="ticket-body">
-                    <p class="ticket-titulo">${t.titulo || '(sem título)'}</p>
-                    ${desc ? `<p class="ticket-desc">${desc}</p>` : ''}
+                    <p class="ticket-titulo">${esc(t.titulo || '(sem título)')}</p>
+                    ${desc ? `<p class="ticket-desc">${esc(desc)}</p>` : ''}
                     <div class="ticket-meta">
                         ${statusPill(t.status)}
-                        ${equipInfo ? `<span><i class="bi bi-pc-display" style="font-size:.7rem;"></i> ${equipInfo}</span>` : ''}
-                        ${tecnico   ? `<span class="ticket-tecnico"><i class="bi bi-person-fill" style="font-size:.7rem;"></i> ${tecnico}</span>` : ''}
+                        ${prioridadePill(t.prioridade)}
+                        ${equipInfo ? `<span><i class="bi bi-pc-display" style="font-size:.7rem;"></i> ${esc(equipInfo)}</span>` : ''}
+                        ${tecnico   ? `<span class="ticket-tecnico"><i class="bi bi-person-fill" style="font-size:.7rem;"></i> ${esc(tecnico)}</span>` : ''}
                         <span class="ticket-date"><i class="bi bi-clock" style="font-size:.7rem;"></i> ${fmtData(t.criado_em)}</span>
                     </div>
                 </div>
@@ -490,6 +579,8 @@
 
     function fecharSheet() {
         document.getElementById('sheet').classList.remove('open');
+        document.getElementById('sheet-detalhe').classList.remove('open');
+        ticketDetalheId = null;
         document.getElementById('backdrop').classList.remove('open');
         document.body.style.overflow = '';
         resetarSheet();
@@ -502,6 +593,9 @@
         document.getElementById('device-preview').classList.remove('show');
         document.getElementById('ticket-titulo').value = '';
         document.getElementById('ticket-descricao').value = '';
+        document.getElementById('ticket-tipo').value = 'outro';
+        document.getElementById('ticket-prioridade').value = 'media';
+        document.getElementById('ja-reportado').style.display = 'none';
         document.getElementById('ticket-erro').style.display = 'none';
         document.getElementById('passo-device').style.display = '';
         document.getElementById('passo-ticket').style.display = 'none';
@@ -584,6 +678,12 @@
             document.getElementById('device-nome').textContent = [d.tipo, d.marca].filter(Boolean).join(' ') || d.codigo_qr;
             document.getElementById('device-info').textContent = [d.sala, d.situacao_display].filter(Boolean).join(' · ');
             document.getElementById('device-preview').classList.add('show');
+            const abertos = Number(d.chamados_abertos) || 0;
+            const aviso = document.getElementById('ja-reportado');
+            aviso.textContent = abertos === 1
+                ? 'Este equipamento já tem 1 chamado em aberto. Se for o mesmo problema, não precisa reportar de novo.'
+                : `Este equipamento já tem ${abertos} chamados em aberto. Se for o mesmo problema, não precisa reportar de novo.`;
+            aviso.style.display = abertos ? 'block' : 'none';
             document.getElementById('passo-device').style.display = 'none';
             document.getElementById('passo-ticket').style.display = '';
             document.getElementById('ticket-titulo').focus();
@@ -626,8 +726,16 @@
 
         const res = await authFetch(`${API}/tickets/`, {
             method: 'POST',
-            body: JSON.stringify({ titulo, descricao, dispositivo: dispositivoAtual.id }),
+            body: JSON.stringify({
+                titulo, descricao,
+                dispositivo:   dispositivoAtual.id,
+                tipo_problema: document.getElementById('ticket-tipo').value,
+                prioridade:    document.getElementById('ticket-prioridade').value,
+            }),
         });
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send"></i>Enviar Reporte';
 
         if (res.ok) {
             fecharSheet();
@@ -635,10 +743,95 @@
         } else {
             const data = await res.json().catch(() => ({}));
             const msgs = Object.values(data).flat();
-            erroEl.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>' + (msgs[0] || 'Erro ao enviar. Tente novamente.');
+            erroEl.textContent = msgs[0] || 'Erro ao enviar. Tente novamente.';
             erroEl.style.display = 'block';
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-send"></i>Enviar Reporte';
+        }
+    }
+
+    // ── Detalhe: histórico e comentários ──────────────────────────────────────
+
+    let ticketDetalheId = null;
+
+    const ACAO_LABEL = {
+        aberto: 'Chamado aberto', assumido: 'Assumido', em_andamento: 'Em andamento',
+        resolvido: 'Resolvido', encerrado: 'Encerrado',
+        comentario: 'Comentário', prioridade: 'Prioridade alterada',
+    };
+
+    function abrirDetalhe(id) {
+        const t = todosTickets.find(x => x.id === id);
+        if (!t) return;
+        ticketDetalheId = id;
+
+        document.getElementById('detalhe-titulo').textContent = `#${t.id} · ${t.titulo || '(sem título)'}`;
+        document.getElementById('detalhe-meta').innerHTML =
+            statusPill(t.status) + prioridadePill(t.prioridade) +
+            `<span class="status-pill" style="background:#F1F5F9;color:#475569;">${esc(TIPO_LABEL[t.tipo_problema] || t.tipo_problema)}</span>`;
+        const desc = document.getElementById('detalhe-desc');
+        desc.textContent = (t.descricao || '').trim();
+        desc.style.display = desc.textContent ? '' : 'none';
+
+        // Chamado encerrado não recebe comentários
+        document.getElementById('detalhe-comentar').style.display = t.status === 'encerrado' ? 'none' : '';
+        document.getElementById('detalhe-texto').value = '';
+        document.getElementById('detalhe-erro').style.display = 'none';
+        document.getElementById('detalhe-historico').innerHTML = '<p class="hist-vazio">Carregando…</p>';
+
+        document.getElementById('sheet-detalhe').classList.add('open');
+        document.getElementById('backdrop').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        carregarHistorico();
+    }
+
+    async function carregarHistorico() {
+        const id  = ticketDetalheId;
+        const res = await authFetch(`${API}/tickets/${id}/historico/`);
+        if (id !== ticketDetalheId) return;   // o usuário já abriu outro reporte
+        const el = document.getElementById('detalhe-historico');
+        if (!res.ok) { el.innerHTML = '<p class="hist-vazio">Não foi possível carregar o histórico.</p>'; return; }
+
+        const data  = await res.json();
+        const lista = (Array.isArray(data) ? data : (data.results || [])).slice().reverse();   // do mais antigo ao mais novo
+        if (!lista.length) { el.innerHTML = '<p class="hist-vazio">Nenhum registro ainda.</p>'; return; }
+
+        const meuId = getUsuario().id;
+        el.innerHTML = lista.map(h => {
+            const comentario = h.acao === 'comentario';
+            const meu   = h.usuario === meuId;
+            const autor = meu ? 'Você' : (h.usuario_nome || 'Equipe técnica');
+            return `<div class="hist-item${comentario ? ' comentario' : ''}${comentario && meu ? ' meu' : ''}">
+                <div class="hist-cab">
+                    <span><strong>${esc(ACAO_LABEL[h.acao] || h.acao)}</strong> · ${esc(autor)}</span>
+                    <span>${new Date(h.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                </div>
+                ${h.descricao ? `<p class="hist-texto">${esc(h.descricao)}</p>` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    async function enviarComentario() {
+        const campo  = document.getElementById('detalhe-texto');
+        const erroEl = document.getElementById('detalhe-erro');
+        const texto  = campo.value.trim();
+        if (!texto) { campo.focus(); return; }
+
+        const btn = document.getElementById('btn-comentar');
+        btn.disabled = true;
+        erroEl.style.display = 'none';
+
+        const res = await authFetch(`${API}/tickets/${ticketDetalheId}/comentar/`, {
+            method: 'POST',
+            body: JSON.stringify({ texto }),
+        });
+        btn.disabled = false;
+
+        if (res.ok) {
+            campo.value = '';
+            await carregarHistorico();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            erroEl.textContent = data.detail || Object.values(data).flat()[0] || 'Não foi possível enviar. Tente novamente.';
+            erroEl.style.display = 'block';
         }
     }
 </script>
