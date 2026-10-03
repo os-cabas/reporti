@@ -196,9 +196,9 @@
                 : `<span class="status-badge badge-encerrado">Inativa</span>`;
             const html = `<tr>
                 <td class="text-muted fw-medium">#${e.id}</td>
-                <td class="fw-medium">${e.nome}</td>
-                <td><span class="tag-badge">${tipoLabel}</span></td>
-                <td class="text-muted" style="font-size:.8125rem;">${e.email_responsavel || '—'}</td>
+                <td class="fw-medium">${esc(e.nome)}</td>
+                <td><span class="tag-badge">${esc(tipoLabel)}</span></td>
+                <td class="text-muted" style="font-size:.8125rem;">${esc(e.email_responsavel || '—')}</td>
                 <td>${statusBadge}</td>
                 <td><span class="count-badge">${count} sala${count !== 1 ? 's' : ''}</span></td>
                 <td>

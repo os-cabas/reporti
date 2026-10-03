@@ -125,7 +125,7 @@
             const count = modelosCount[c.id] || 0;
             const html = `<tr>
                 <td class="text-muted fw-medium">#${c.id}</td>
-                <td class="fw-medium">${c.nome}</td>
+                <td class="fw-medium">${esc(c.nome)}</td>
                 <td><span class="count-badge">${count} modelo${count !== 1 ? 's' : ''}</span></td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">

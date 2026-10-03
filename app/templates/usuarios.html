@@ -168,7 +168,7 @@
     };
 
     function perfilBadge(p) {
-        const { label, bg, cor } = PERFIL_INFO[p] || { label: p, bg: '#f1f5f9', cor: '#64748b' };
+        const { label, bg, cor } = PERFIL_INFO[p] || { label: esc(p), bg: '#f1f5f9', cor: '#64748b' };
         return `<span class="status-badge" style="background:${bg};color:${cor};border-color:transparent;">${label}</span>`;
     }
 
@@ -216,11 +216,11 @@
             const entNome = u.entidade ? (entidadeMap[u.entidade] || `#${u.entidade}`) : '—';
             const html = `<tr>
                 <td class="text-muted fw-medium">#${u.id}</td>
-                <td class="fw-medium">${nome}</td>
-                <td class="text-muted" style="font-size:.8125rem;">${u.email || '—'}</td>
-                <td class="text-muted">${u.cargo || '—'}</td>
+                <td class="fw-medium">${esc(nome)}</td>
+                <td class="text-muted" style="font-size:.8125rem;">${esc(u.email || '—')}</td>
+                <td class="text-muted">${esc(u.cargo || '—')}</td>
                 <td>${perfilBadge(u.perfil)}</td>
-                <td class="text-muted">${entNome}</td>
+                <td class="text-muted">${esc(entNome)}</td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
                         <button class="btn-action" onclick="abrirEdicao(${u.id})" title="Editar"><i class="bi bi-pencil"></i></button>
@@ -237,7 +237,7 @@
         ['f-entidade', 'e-entidade'].forEach(selId => {
             const sel = document.getElementById(selId);
             sel.innerHTML = '<option value="">— Nenhuma —</option>';
-            entArr.forEach(e => { sel.innerHTML += `<option value="${e.id}">${e.nome}</option>`; });
+            entArr.forEach(e => { sel.innerHTML += `<option value="${e.id}">${esc(e.nome)}</option>`; });
         });
     }
 

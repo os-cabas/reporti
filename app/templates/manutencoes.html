@@ -170,7 +170,7 @@
     };
 
     function tipoBadge(t) {
-        const { label, cor, bg } = TIPO_INFO[t] || { label: t, cor: '#64748b', bg: '#f1f5f9' };
+        const { label, cor, bg } = TIPO_INFO[t] || { label: esc(t), cor: '#64748b', bg: '#f1f5f9' };
         return `<span class="status-badge" style="background:${bg};color:${cor};border-color:transparent;">${label}</span>`;
     }
 
@@ -261,11 +261,11 @@
             const html = `<tr>
                 <td class="text-muted fw-medium">#${m.id}</td>
                 <td>
-                    <span class="fw-medium">${dispNome}</span>
-                    ${m.descricao ? `<br><small class="text-muted" style="font-size:.75rem;">${m.descricao.length > 55 ? m.descricao.slice(0,55)+'…' : m.descricao}</small>` : ''}
+                    <span class="fw-medium">${esc(dispNome)}</span>
+                    ${m.descricao ? `<br><small class="text-muted" style="font-size:.75rem;">${esc(m.descricao.length > 55 ? m.descricao.slice(0,55)+'…' : m.descricao)}</small>` : ''}
                 </td>
                 <td>${tipoBadge(m.tipo)}</td>
-                <td><span class="tag-badge"><i class="bi bi-person" style="font-size:.7rem;"></i>${tecNome}</span></td>
+                <td><span class="tag-badge"><i class="bi bi-person" style="font-size:.7rem;"></i>${esc(tecNome)}</span></td>
                 <td class="text-muted">${fmtDT(m.data_inicio)}</td>
                 <td>${m.data_fim ? `<span class="text-muted">${fmtDT(m.data_fim)}</span>` : concluida}</td>
                 <td>
@@ -291,13 +291,13 @@
         ['f-dispositivo', 'e-dispositivo'].forEach(selId => {
             const sel = document.getElementById(selId);
             sel.innerHTML = '<option value="">Selecione um dispositivo</option>';
-            dispArr.forEach(d => { sel.innerHTML += `<option value="${d.id}">${dispMap[d.id]}</option>`; });
+            dispArr.forEach(d => { sel.innerHTML += `<option value="${d.id}">${esc(dispMap[d.id])}</option>`; });
         });
         const tecnicos = usrArr.filter(u => ['tecnico','admin_entidade','admin_geral'].includes(u.perfil));
         ['f-tecnico', 'e-tecnico'].forEach(selId => {
             const sel = document.getElementById(selId);
             sel.innerHTML = '<option value="">Selecione um técnico</option>';
-            tecnicos.forEach(u => { sel.innerHTML += `<option value="${u.id}">${tecnicoMap[u.id]}</option>`; });
+            tecnicos.forEach(u => { sel.innerHTML += `<option value="${u.id}">${esc(tecnicoMap[u.id])}</option>`; });
         });
     }
 
