@@ -4,11 +4,13 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
+from app import notificacoes
 from app.models.historico_ticket import HistoricoTicket
 from app.models.ticket import Ticket
 from app.permissions import EhTecnico
 from app.serializers.historico_ticket import HistoricoTicketSerializer
 from app.serializers.ticket import TicketSerializer
+from app.throttles import AberturaTicketThrottle
 
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -41,6 +43,11 @@ class TicketViewSet(viewsets.ModelViewSet):
             return [EhTecnico()]
         return [permissions.IsAuthenticated()]
 
+    def get_throttles(self):
+        if self.action == 'create':
+            return [AberturaTicketThrottle()]
+        return super().get_throttles()
+
     # ── RN004: bloqueia qualquer escrita em ticket encerrado ─────────────────
 
     def get_object(self):
@@ -50,6 +57,9 @@ class TicketViewSet(viewsets.ModelViewSet):
         if self.action in acoes_escrita and ticket.status == 'encerrado':
             raise PermissionDenied('Ticket encerrado não pode ser editado.')
         return ticket
+
+    def _base_url(self):
+        return self.request.build_absolute_uri('/').rstrip('/')
 
     # ── Criação ──────────────────────────────────────────────────────────────
 
@@ -63,6 +73,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             ticket=ticket, acao='aberto',
             descricao='Chamado aberto.', usuario=self.request.user,
         )
+        notificacoes.notificar_abertura(ticket, self._base_url())
 
     # ── Edição: mudança de prioridade fica registrada no histórico ───────────
 
@@ -89,6 +100,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         HistoricoTicket.objects.create(
             ticket=ticket, acao=novo_status, descricao=descricao, usuario=usuario,
         )
+        notificacoes.notificar_status(ticket, descricao, usuario, self._base_url())
 
     # ── RF012: ações de atendimento ──────────────────────────────────────────
 
