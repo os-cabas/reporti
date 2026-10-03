@@ -284,6 +284,29 @@
     .quick-link:hover { background: var(--primary-light); color: var(--primary); }
     .quick-link i { font-size: .875rem; opacity: .7; flex-shrink: 0; }
 
+    /* ── Tempo de atendimento ─────────────────────────────────────────── */
+    .pipeline-time .pipeline-num { color: #0f766e; font-size: 1.5rem; letter-spacing: -.5px; }
+    .pipeline-time .pipeline-indicator { background: #0f766e; }
+    .pipeline-time .pipeline-label { max-width: none; }
+
+    /* ── Rankings ─────────────────────────────────────────────────────── */
+    .rank-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .5rem 0;
+        border-bottom: 1px solid var(--border-light);
+        font-size: .8125rem;
+    }
+    .rank-row:last-child { border-bottom: none; }
+    .rank-name { font-weight: 500; color: var(--text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank-sub { font-size: .72rem; color: var(--text-muted); }
+    .rank-count { font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+    .rank-empty { font-size: .8125rem; color: var(--text-muted); }
+    .rank-title { font-size: .72rem; font-weight: 600; color: var(--text-muted); margin: .25rem 0 .125rem; }
+    .rank-title + .rank-title, .rank-row + .rank-title { margin-top: .875rem; }
+
     /* ── Responsive ───────────────────────────────────────────────────── */
     @media (max-width: 1100px) {
         .dash-grid { grid-template-columns: 1fr; }
@@ -335,6 +358,20 @@
     </div>
 </div>
 
+<!-- Tempo médio de atendimento -->
+<div class="dash-pipeline">
+    <div class="pipeline-cell pipeline-time">
+        <div class="pipeline-indicator"></div>
+        <span class="pipeline-num" id="t-assumir">—</span>
+        <span class="pipeline-label">tempo médio até um técnico assumir<br><span id="t-assumir-base"></span></span>
+    </div>
+    <div class="pipeline-cell pipeline-time">
+        <div class="pipeline-indicator"></div>
+        <span class="pipeline-num" id="t-resolver">—</span>
+        <span class="pipeline-label">tempo médio até resolver<br><span id="t-resolver-base"></span></span>
+    </div>
+</div>
+
 <!-- Main grid -->
 <div class="dash-grid">
     <!-- Activity feed -->
@@ -379,6 +416,27 @@
             </div>
         </div>
 
+        <!-- Ranking: onde concentrar a manutenção preventiva -->
+        <div class="panel-card">
+            <div class="panel-header">Mais chamados</div>
+            <div class="panel-body">
+                <div class="rank-title">Equipamentos</div>
+                <div id="rank-dispositivos"><span class="rank-empty">—</span></div>
+                <div class="rank-title">Salas</div>
+                <div id="rank-salas"><span class="rank-empty">—</span></div>
+            </div>
+        </div>
+
+        <!-- Cortes dos chamados -->
+        <div class="panel-card">
+            <div class="panel-header">Chamados por tipo</div>
+            <div class="panel-body" id="por-tipo"><span class="rank-empty">—</span></div>
+        </div>
+        <div class="panel-card">
+            <div class="panel-header">Pendentes por prioridade</div>
+            <div class="panel-body" id="por-prioridade"><span class="rank-empty">—</span></div>
+        </div>
+
         <!-- Quick links -->
         <div class="panel-card">
             <div class="panel-header">Acessos rápidos</div>
@@ -413,7 +471,7 @@
     };
 
     function statusBadge(s) {
-        const { label, cls } = STATUS_BADGE[s] || { label: s, cls: '' };
+        const { label, cls } = STATUS_BADGE[s] || { label: esc(s), cls: '' };
         return `<span class="status-badge ${cls}">${label}</span>`;
     }
 
@@ -456,51 +514,98 @@
         loadDashboard();
     });
 
+    const TIPO_LABEL = {
+        hardware: 'Hardware', software: 'Software', rede: 'Rede', periferico: 'Periférico', outro: 'Outro',
+    };
+    const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+    const PRIORIDADE_COR   = { critica: '#dc2626', alta: '#d97706', media: '#2563eb', baixa: '#94a3b8' };
+
+    // Minutos → "45 min", "3h 20min" ou "2d 4h"
+    function fmtDuracao(min) {
+        if (min === null || min === undefined) return '—';
+        const m = Math.round(min);
+        if (m < 1)    return '< 1 min';
+        if (m < 60)   return `${m} min`;
+        if (m < 1440) return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}min`;
+        return `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`;
+    }
+
+    function fmtBase(n) {
+        return n ? `medido em ${n} chamado${n !== 1 ? 's' : ''}` : 'ainda sem chamados medidos';
+    }
+
+    function renderRanking(elId, linhas, nomeDe, subDe) {
+        const el = document.getElementById(elId);
+        if (!linhas.length) { el.innerHTML = '<span class="rank-empty">Sem chamados ainda.</span>'; return; }
+        el.innerHTML = linhas.map(l => {
+            const sub = subDe(l);
+            return `<div class="rank-row">
+                <div style="min-width:0;">
+                    <div class="rank-name">${esc(nomeDe(l))}</div>
+                    ${sub ? `<div class="rank-sub">${esc(sub)}</div>` : ''}
+                </div>
+                <span class="rank-count" title="${l.pendentes} pendente${l.pendentes !== 1 ? 's' : ''}">${l.total}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function renderContagens(elId, contagens, labels, cores) {
+        const el = document.getElementById(elId);
+        const chaves = Object.keys(labels);
+        el.innerHTML = chaves.map(k => `<div class="equip-row">
+            <span class="equip-info">
+                <span class="equip-dot" style="background:${cores?.[k] || '#94a3b8'};"></span>${labels[k]}
+            </span>
+            <span class="equip-count">${Number(contagens?.[k]) || 0}</span>
+        </div>`).join('');
+    }
+
+    // Todos os números vêm prontos de /api/dashboard/ (contados no banco, sem paginação).
     async function loadDashboard() {
-        const [dash, ticketsRes, dispositivosRes] = await Promise.all([
-            authFetch(`${API}/dashboard/`).then(r => r.json()),
-            authFetch(`${API}/tickets/`).then(r => r.json()),
-            authFetch(`${API}/dispositivos/`).then(r => r.json()),
-        ]);
+        const res = await authFetch(`${API}/dashboard/`);
+        if (!res.ok) {
+            document.getElementById('feed-list').innerHTML =
+                '<li class="feed-empty"><i class="bi bi-exclamation-circle"></i>Não foi possível carregar o dashboard.</li>';
+            return;
+        }
+        const dash = await res.json();
 
         // Pipeline
-        const tickets    = Array.isArray(ticketsRes) ? ticketsRes : (ticketsRes.results || []);
-        const dispositivos = Array.isArray(dispositivosRes) ? dispositivosRes : (dispositivosRes.results || []);
-
-        const aguardando = tickets.filter(t => t.status === 'aberto').length;
-        const andamento  = tickets.filter(t => t.status === 'assumido' || t.status === 'em_andamento').length;
-
-        document.getElementById('p-aguardando').textContent = aguardando;
-        document.getElementById('p-andamento').textContent  = andamento;
+        document.getElementById('p-aguardando').textContent = dash.chamados_aguardando ?? '—';
+        document.getElementById('p-andamento').textContent  = dash.chamados_em_andamento ?? '—';
         document.getElementById('p-concluidos').textContent = dash.chamados_concluidos ?? '—';
         document.getElementById('p-ativos').textContent     = dash.equipamentos_ativos  ?? '—';
         document.getElementById('p-manut').textContent      = dash.equipamentos_em_manutencao ?? '—';
 
-        // Device health
-        const totalDisp   = dispositivos.length;
-        const operacionais = dispositivos.filter(d => d.situacao === 'operacional').length;
-        const emManut      = dispositivos.filter(d => d.situacao === 'em_manutencao').length;
-        const inativos     = dispositivos.filter(d => d.situacao === 'inativo' || d.situacao === 'descartado').length;
+        // Tempo médio de atendimento
+        document.getElementById('t-assumir').textContent       = fmtDuracao(dash.tempo_medio_assumir_min);
+        document.getElementById('t-assumir-base').textContent  = fmtBase(dash.chamados_medidos_assumir);
+        document.getElementById('t-resolver').textContent      = fmtDuracao(dash.tempo_medio_resolver_min);
+        document.getElementById('t-resolver-base').textContent = fmtBase(dash.chamados_medidos_resolver);
 
-        document.getElementById('eq-op').textContent     = operacionais;
-        document.getElementById('eq-manut').textContent  = emManut;
-        document.getElementById('eq-inativo').textContent = inativos;
+        // Device health
+        const totalDisp    = dash.equipamentos_total || 0;
+        const operacionais = dash.equipamentos_ativos || 0;
+
+        document.getElementById('eq-op').textContent      = operacionais;
+        document.getElementById('eq-manut').textContent   = dash.equipamentos_em_manutencao ?? 0;
+        document.getElementById('eq-inativo').textContent = dash.equipamentos_inativos ?? 0;
 
         const pct = totalDisp > 0 ? Math.round((operacionais / totalDisp) * 100) : 0;
         document.getElementById('health-fill').style.width = `${pct}%`;
 
-        // Build device map: id → label
-        const dispMap = {};
-        dispositivos.forEach(d => {
-            const label = [d.tipo, d.marca].filter(Boolean).join(' ') || `Dispositivo #${d.id}`;
-            dispMap[d.id] = { label, sala: d.sala };
-        });
+        // Rankings e cortes
+        renderRanking('rank-dispositivos', dash.top_dispositivos || [],
+            d => d.nome || d.codigo_qr || `Dispositivo #${d.id}`,
+            d => [d.codigo_qr, d.sala].filter(Boolean).join(' · '));
+        renderRanking('rank-salas', dash.top_salas || [],
+            s => s.nome || `Sala #${s.id}`,
+            s => s.bloco ? `Bloco ${s.bloco}` : '');
+        renderContagens('por-tipo', dash.chamados_por_tipo, TIPO_LABEL);
+        renderContagens('por-prioridade', dash.pendentes_por_prioridade, PRIORIDADE_LABEL, PRIORIDADE_COR);
 
         // Activity feed — 10 tickets mais recentes
-        const recent = [...tickets]
-            .sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em))
-            .slice(0, 10);
-
+        const recent = dash.recentes || [];
         const feedEl = document.getElementById('feed-list');
 
         if (!recent.length) {
@@ -511,17 +616,14 @@
         }
 
         feedEl.innerHTML = recent.map(t => {
-            const disp    = dispMap[t.dispositivo];
-            const dispLabel = disp ? disp.label : null;
-            const meta    = [dispLabel].filter(Boolean).join(' · ');
-            const dotCls  = `dot-${t.status}`;
+            const dotCls = STATUS_BADGE[t.status] ? `dot-${t.status}` : '';
 
             return `<li class="feed-item">
                 <span class="feed-dot ${dotCls}"></span>
                 <div class="feed-body">
-                    <div class="feed-item-title">${t.titulo}</div>
+                    <div class="feed-item-title">${esc(t.titulo)}</div>
                     <div class="feed-item-meta">
-                        ${meta ? `<span>${meta}</span><span class="feed-item-sep">·</span>` : ''}
+                        ${t.dispositivo ? `<span>${esc(t.dispositivo)}</span><span class="feed-item-sep">·</span>` : ''}
                         <span class="feed-item-time">${tempoRelativo(t.criado_em)}</span>
                     </div>
                 </div>
