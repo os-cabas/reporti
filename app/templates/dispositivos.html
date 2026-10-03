@@ -5,6 +5,11 @@
 {% block page_title %}Dispositivos{% endblock %}
 
 {% block content %}
+<style>
+    /* Textos longos e sem espaços (patrimônio, nome de sala) quebram linha em vez de empurrar as ações para fora. */
+    #disp-body td:nth-child(2), #disp-body td:nth-child(5) { min-width: 150px; overflow-wrap: anywhere; }
+    #disp-body td:nth-child(3), #disp-body td:nth-child(6) { min-width: 110px; overflow-wrap: anywhere; }
+</style>
 <div class="toolbar">
     <div class="toolbar-left">
         <div class="btn-group filter-group" role="group">
@@ -19,6 +24,12 @@
         </div>
     </div>
     <div class="toolbar-right">
+        <button class="btn btn-outline-secondary btn-sm" data-min-perfil="admin_entidade" onclick="baixarArquivo(`${API}/dispositivos/exportar/`, 'dispositivos.csv')">
+            <i class="bi bi-download me-1"></i>Exportar CSV
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-lote">
+            <i class="bi bi-qr-code me-1"></i>Etiquetas QR
+        </button>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-novo">
             <i class="bi bi-plus-lg me-1"></i>Novo Dispositivo
         </button>
@@ -213,6 +224,31 @@
     </div>
 </div>
 
+<!-- Modal: Etiquetas QR em lote -->
+<div class="modal fade" id="modal-lote" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Etiquetas QR por sala</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label" for="lote-sala">Sala <span class="text-danger">*</span></label>
+                <select id="lote-sala" class="form-select form-select-sm">
+                    <option value="">Selecione uma sala</option>
+                </select>
+                <div class="form-text">Gera uma folha com o QR Code de todos os dispositivos da sala, pronta para imprimir e recortar.</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-sm btn-primary" id="lote-gerar" onclick="imprimirLote()">
+                    <i class="bi bi-printer me-1"></i>Gerar etiquetas
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Histórico do Dispositivo -->
 <div class="modal fade" id="modal-historico" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -252,7 +288,7 @@
     };
 
     function situacaoBadge(s) {
-        const { label, cor, bg } = SITUACAO_INFO[s] || { label: s, cor: '#64748b', bg: '#f1f5f9' };
+        const { label, cor, bg } = SITUACAO_INFO[s] || { label: esc(s), cor: '#64748b', bg: '#f1f5f9' };
         return `<span class="status-badge" style="background:${bg};color:${cor};border-color:transparent;">${label}</span>`;
     }
 
@@ -335,16 +371,16 @@
             const html = `<tr>
                 <td class="text-muted fw-medium">#${d.id}</td>
                 <td>
-                    <span class="fw-medium">${tipoMarca}</span>
-                    ${catNome !== '—' ? `<br><span class="tag-badge" style="font-size:.7rem;">${catNome}</span>` : ''}
+                    <span class="fw-medium">${esc(tipoMarca)}</span>
+                    ${catNome !== '—' ? `<br><span class="tag-badge" style="font-size:.7rem;">${esc(catNome)}</span>` : ''}
                 </td>
-                <td class="text-muted">${d.patrimonio || '—'}</td>
+                <td class="text-muted">${esc(d.patrimonio || '—')}</td>
                 <td>${situacaoBadge(d.situacao)}</td>
-                <td>${sala.nome ? `${sala.nome}${sala.bloco ? ' / '+sala.bloco : ''}` : '—'}</td>
-                <td>${entNome}</td>
+                <td>${sala.nome ? esc(`${sala.nome}${sala.bloco ? ' / '+sala.bloco : ''}`) : '—'}</td>
+                <td>${esc(entNome)}</td>
                 <td>
                     <div class="d-flex gap-1 justify-content-end">
-                        <button class="btn-action" onclick="verQr('${d.codigo_qr}')" title="Ver QR Code" ${!d.codigo_qr ? 'disabled' : ''}><i class="bi bi-qr-code"></i></button>
+                        <button class="btn-action" onclick="verQr(${d.id})" title="Ver QR Code" ${!d.codigo_qr ? 'disabled' : ''}><i class="bi bi-qr-code"></i></button>
                         <button class="btn-action" onclick="abrirMover(${d.id})" title="Mover"><i class="bi bi-arrow-left-right"></i></button>
                         <button class="btn-action" onclick="verHistorico(${d.id})" title="Histórico"><i class="bi bi-clock-history"></i></button>
                         <button class="btn-action" onclick="abrirEdicao(${d.id})" title="Editar"><i class="bi bi-pencil"></i></button>
@@ -366,20 +402,20 @@
     }
 
     function popularSelects() {
-        ['f-sala', 'e-sala', 'mover-sala'].forEach(selId => {
+        ['f-sala', 'e-sala', 'mover-sala', 'lote-sala'].forEach(selId => {
             const sel = document.getElementById(selId);
             if (!sel) return;
             sel.innerHTML = '<option value="">Selecione uma sala</option>';
             salaArr.forEach(s => {
                 const label = s.bloco ? `${s.nome} — ${s.bloco}` : s.nome;
-                sel.innerHTML += `<option value="${s.id}">${label}</option>`;
+                sel.innerHTML += `<option value="${s.id}">${esc(label)}</option>`;
             });
         });
         ['f-modelo', 'e-modelo'].forEach(selId => {
             const sel = document.getElementById(selId);
             if (!sel) return;
             sel.innerHTML = '<option value="">— Nenhum —</option>';
-            modeloArr.forEach(m => { sel.innerHTML += `<option value="${m.id}">${m.nome}</option>`; });
+            modeloArr.forEach(m => { sel.innerHTML += `<option value="${m.id}">${esc(m.nome)}</option>`; });
         });
     }
 
@@ -500,10 +536,10 @@
                 </div>
                 <div class="flex-grow-1">
                     <div class="d-flex justify-content-between align-items-start">
-                        <span class="fw-semibold" style="font-size:.875rem;">${h.acao}</span>
+                        <span class="fw-semibold" style="font-size:.875rem;">${esc(h.acao)}</span>
                         <span class="text-muted" style="font-size:.75rem;">${new Date(h.criado_em).toLocaleString('pt-BR')}</span>
                     </div>
-                    ${h.descricao ? `<p class="text-muted mb-0 mt-1" style="font-size:.8125rem;">${h.descricao}</p>` : ''}
+                    ${h.descricao ? `<p class="text-muted mb-0 mt-1" style="font-size:.8125rem;">${esc(h.descricao)}</p>` : ''}
                 </div>
             </div>`).join('');
     }
@@ -515,7 +551,9 @@
         else toast('Não foi possível excluir.', 'error');
     }
 
-    async function verQr(codigo) {
+    async function verQr(id) {
+        const codigo = todosDisp.find(x => x.id === id)?.codigo_qr;
+        if (!codigo) return;
         const wrap = document.getElementById('qr-canvas-wrap');
         wrap.innerHTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status"></div>';
         document.getElementById('qr-codigo-label').textContent = codigo;
@@ -537,18 +575,86 @@
         }
     }
 
+    // Abre a janela de impressão só com HTML estático; os dados entram depois via
+    // textContent/src, porque a janela herda a origem (e o token) desta página.
+    function abrirJanelaImpressao(titulo, css) {
+        const win = window.open('', '_blank');
+        if (!win) { toast('Permita pop-ups para imprimir.', 'warn'); return null; }
+        win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title></title><style>${css}</style></head><body></body></html>`);
+        win.document.close();
+        win.document.title = titulo;
+        return win;
+    }
+
+    function criarEtiqueta(doc, src, codigo, nome) {
+        const div = doc.createElement('div');
+        div.className = 'etiqueta';
+        const img = doc.createElement('img');
+        img.src = String(src).startsWith('data:image/png;base64,') ? src : '';
+        div.appendChild(img);
+        const p = doc.createElement('p');
+        p.textContent = codigo;
+        div.appendChild(p);
+        if (nome) {
+            const small = doc.createElement('small');
+            small.textContent = nome;
+            div.appendChild(small);
+        }
+        return div;
+    }
+
     function imprimirQr() {
         const img = document.querySelector('#qr-canvas-wrap img');
         if (!img) return;
         const codigo = document.getElementById('qr-codigo-label').textContent;
-        const win = window.open('', '_blank');
-        win.document.write(`<!DOCTYPE html><html><head><title>QR — ${codigo}</title>
-            <style>body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;}
-            p{margin:.5rem 0 0;font-size:14px;color:#333;font-weight:600;letter-spacing:.5px;}</style></head>
-            <body><img src="${img.src}"><p>${codigo}</p></body></html>`);
-        win.document.close();
+        const win = abrirJanelaImpressao(`QR — ${codigo}`,
+            `body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;}
+            .etiqueta{text-align:center;}
+            p{margin:.5rem 0 0;font-size:14px;color:#333;font-weight:600;letter-spacing:.5px;}`);
+        if (!win) return;
+        win.document.body.appendChild(criarEtiqueta(win.document, img.src, codigo));
         win.focus();
         setTimeout(() => { win.print(); win.close(); }, 300);
+    }
+
+    async function imprimirLote() {
+        const sala = document.getElementById('lote-sala').value;
+        if (!sala) { toast('Selecione a sala.', 'warn'); return; }
+
+        const btn = document.getElementById('lote-gerar');
+        btn.disabled = true;
+        const res = await authFetch(`${API}/dispositivos/qr-lote/?sala=${encodeURIComponent(sala)}`);
+        btn.disabled = false;
+
+        if (!res.ok) { toast('Não foi possível gerar as etiquetas.', 'error'); return; }
+        const data = await res.json();
+        if (!data.etiquetas.length) { toast('Esta sala não tem dispositivos ativos.', 'warn'); return; }
+
+        const nomeSala = data.bloco ? `${data.sala} — ${data.bloco}` : data.sala;
+        const win = abrirJanelaImpressao(`Etiquetas QR — ${nomeSala}`,
+            `body{margin:12mm;font-family:sans-serif;color:#111;}
+            h1{font-size:14px;margin:0 0 8mm;}
+            .grade{display:grid;grid-template-columns:repeat(4,1fr);gap:6mm;}
+            .etiqueta{border:1px dashed #999;border-radius:4px;padding:4mm 2mm;text-align:center;break-inside:avoid;}
+            .etiqueta img{width:32mm;height:32mm;}
+            .etiqueta p{margin:1mm 0 0;font-size:11px;font-weight:700;letter-spacing:.3px;word-break:break-all;}
+            .etiqueta small{font-size:9px;color:#555;}
+            @media print{h1{display:none;}}`);
+        if (!win) return;
+
+        const doc = win.document;
+        const h1 = doc.createElement('h1');
+        h1.textContent = `Etiquetas QR — ${nomeSala} (${data.etiquetas.length})`;
+        doc.body.appendChild(h1);
+        const grade = doc.createElement('div');
+        grade.className = 'grade';
+        data.etiquetas.forEach(e => grade.appendChild(criarEtiqueta(doc, e.image, e.codigo_qr, e.nome)));
+        doc.body.appendChild(grade);
+
+        bootstrap.Modal.getInstance(document.getElementById('modal-lote'))?.hide();
+        if (data.truncado) toast('A sala tem mais dispositivos do que cabem em um lote. Foram gerados os 200 primeiros.', 'warn', 6000);
+        win.focus();
+        setTimeout(() => win.print(), 400);
     }
 
     document.addEventListener('DOMContentLoaded', carregar);
