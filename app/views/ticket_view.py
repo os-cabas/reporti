@@ -8,9 +8,9 @@ from app import notificacoes
 from app.models.historico_ticket import HistoricoTicket
 from app.models.ticket import Ticket
 from app.permissions import EhTecnico
-from app.serializers.historico_ticket import HistoricoTicketSerializer
+from app.serializers.historico_ticket import ComentarioSerializer, HistoricoTicketSerializer
 from app.serializers.ticket import TicketSerializer
-from app.throttles import AberturaTicketThrottle
+from app.throttles import AberturaTicketThrottle, ComentarioTicketThrottle
 
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -46,13 +46,15 @@ class TicketViewSet(viewsets.ModelViewSet):
     def get_throttles(self):
         if self.action == 'create':
             return [AberturaTicketThrottle()]
+        if self.action == 'comentar':
+            return [ComentarioTicketThrottle()]
         return super().get_throttles()
 
     # ── RN004: bloqueia qualquer escrita em ticket encerrado ─────────────────
 
     def get_object(self):
         ticket = super().get_object()
-        acoes_escrita = {'assumir', 'atualizar_status', 'resolver', 'encerrar',
+        acoes_escrita = {'assumir', 'atualizar_status', 'resolver', 'encerrar', 'comentar',
                          'update', 'partial_update', 'destroy'}
         if self.action in acoes_escrita and ticket.status == 'encerrado':
             raise PermissionDenied('Ticket encerrado não pode ser editado.')
@@ -149,6 +151,21 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = self.get_object()
         self._mudar_status(ticket, 'encerrado', self._observacao('Chamado encerrado.'), request.user)
         return Response(TicketSerializer(ticket).data)
+
+    # ── Comentários: solicitante e técnico conversam dentro do chamado ───────
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def comentar(self, request, pk=None):  # noqa: ARG002
+        ticket = self.get_object()
+        serializer = ComentarioSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        texto = serializer.validated_data['texto']
+        registro = HistoricoTicket.objects.create(
+            ticket=ticket, acao='comentario', descricao=texto, usuario=request.user,
+        )
+        notificacoes.notificar_comentario(ticket, texto, request.user, self._base_url())
+        return Response(HistoricoTicketSerializer(registro).data, status=status.HTTP_201_CREATED)
 
     # ── Histórico do ticket ──────────────────────────────────────────────────
 
