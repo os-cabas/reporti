@@ -1,3 +1,5 @@
+import logging
+
 from django.db import transaction
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -5,12 +7,15 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from app import notificacoes
+from app.exportacao import data_local, resposta_csv
 from app.models.historico_ticket import HistoricoTicket
 from app.models.ticket import Ticket
-from app.permissions import EhTecnico
+from app.permissions import EhAdminEntidade, EhTecnico
 from app.serializers.historico_ticket import ComentarioSerializer, HistoricoTicketSerializer
 from app.serializers.ticket import TicketSerializer
 from app.throttles import AberturaTicketThrottle, ComentarioTicketThrottle
+
+logger = logging.getLogger('app.tickets')
 
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -41,6 +46,8 @@ class TicketViewSet(viewsets.ModelViewSet):
                          'assumir', 'atualizar_status', 'resolver', 'encerrar'}
         if self.action in acoes_tecnico:
             return [EhTecnico()]
+        if self.action == 'exportar':
+            return [EhAdminEntidade()]
         return [permissions.IsAuthenticated()]
 
     def get_throttles(self):
@@ -174,3 +181,30 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = self.get_object()
         qs = ticket.historico.select_related('usuario').all()
         return Response(HistoricoTicketSerializer(qs, many=True).data)
+
+    # ── Relatório em CSV (Administrador da Entidade ou Geral) ────────────────
+
+    @action(detail=False, methods=['get'])
+    def exportar(self, request):
+        tickets = self.get_queryset().select_related('dispositivo__sala')
+        linhas = [
+            (
+                t.pk, t.titulo, t.descricao,
+                t.get_status_display(), t.get_prioridade_display(), t.get_tipo_problema_display(),
+                t.usuario.email if t.usuario else '',
+                (t.tecnico.get_full_name() or t.tecnico.email) if t.tecnico else '',
+                t.dispositivo.codigo_qr if t.dispositivo else '',
+                f'{t.dispositivo.tipo} {t.dispositivo.marca}'.strip() if t.dispositivo else '',
+                t.dispositivo.sala.nome if t.dispositivo and t.dispositivo.sala else '',
+                data_local(t.criado_em), data_local(t.atualizado_em),
+            )
+            for t in tickets
+        ]
+        logger.info('Exportação de %d tickets pelo usuário #%s', len(linhas), request.user.pk)
+        return resposta_csv(
+            'tickets',
+            ['ID', 'Título', 'Descrição', 'Status', 'Prioridade', 'Tipo de problema',
+             'Solicitante', 'Técnico', 'Código do equipamento', 'Equipamento', 'Sala',
+             'Aberto em', 'Atualizado em'],
+            linhas,
+        )
