@@ -64,6 +64,19 @@ class TicketViewSet(viewsets.ModelViewSet):
             descricao='Chamado aberto.', usuario=self.request.user,
         )
 
+    # ── Edição: mudança de prioridade fica registrada no histórico ───────────
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        anterior = serializer.instance.get_prioridade_display()
+        ticket = serializer.save()
+        if ticket.get_prioridade_display() != anterior:
+            HistoricoTicket.objects.create(
+                ticket=ticket, acao='prioridade',
+                descricao=f'Prioridade alterada de "{anterior}" para "{ticket.get_prioridade_display()}".',
+                usuario=self.request.user,
+            )
+
     # ── Helper interno: muda status e registra histórico numa transação ──────
 
     def _mudar_status(self, ticket, novo_status, descricao, usuario, tecnico=None):
@@ -91,7 +104,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def atualizar_status(self, request, pk=None):  # noqa: ARG002
         ticket = self.get_object()
-        novo_status = request.data.get('status', '').strip()
+        novo_status = str(request.data.get('status', '')).strip()
         status_validos = [s[0] for s in Ticket.STATUS if s[0] != 'encerrado']
         if novo_status not in status_validos:
             return Response(
@@ -107,20 +120,22 @@ class TicketViewSet(viewsets.ModelViewSet):
         )
         return Response(TicketSerializer(ticket).data)
 
+    def _observacao(self, padrao):
+        texto = str(self.request.data.get('descricao') or '').strip()
+        return texto[:2000] or padrao
+
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def resolver(self, request, pk=None):  # noqa: ARG002
         ticket = self.get_object()
-        descricao = request.data.get('descricao', 'Chamado marcado como resolvido.')
-        self._mudar_status(ticket, 'resolvido', descricao, request.user)
+        self._mudar_status(ticket, 'resolvido', self._observacao('Chamado marcado como resolvido.'), request.user)
         return Response(TicketSerializer(ticket).data)
 
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def encerrar(self, request, pk=None):  # noqa: ARG002
         ticket = self.get_object()
-        descricao = request.data.get('descricao', 'Chamado encerrado.')
-        self._mudar_status(ticket, 'encerrado', descricao, request.user)
+        self._mudar_status(ticket, 'encerrado', self._observacao('Chamado encerrado.'), request.user)
         return Response(TicketSerializer(ticket).data)
 
     # ── Histórico do ticket ──────────────────────────────────────────────────
